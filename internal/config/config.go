@@ -1,7 +1,6 @@
 package config
 
 var CONFIG Config
-var JSON_OUTPUT bool
 
 type Config struct {
 	Network  string    `mapstructure:"defaultNetwork"`

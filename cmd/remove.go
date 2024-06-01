@@ -31,7 +31,7 @@ var removeCmd = &cobra.Command{
 			if !confirmedRemove {
 				os.Exit(0)
 			}
-			err := client.Remove(name, removeVolumes)
+			err := client.Remove(name)
 			if err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
 			}

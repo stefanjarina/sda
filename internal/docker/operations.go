@@ -144,7 +144,7 @@ func (d *Api) Stop(name string) error {
 	return err
 }
 
-func (d *Api) Remove(name string, removeVolumes bool) error {
+func (d *Api) Remove(name string) error {
 	err := d.client.ContainerRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.RemoveOptions{
 		Force:         true,
 		RemoveVolumes: true,
@@ -163,11 +163,10 @@ func (d *Api) Connect(name string, customPassword string, web bool) error {
 	service := config.CONFIG.GetServiceByName(name)
 
 	if web {
-		return handleWebConnect(service, name)
+		return handleWebConnect(service)
 	} else {
 		return handleCliConnect(service, customPassword, name)
 	}
-	return nil
 }
 
 func (d *Api) Exists(name string) bool {
@@ -182,7 +181,7 @@ func (d *Api) Exists(name string) bool {
 	return len(result) > 0
 }
 
-func handleWebConnect(service *config.Service, name string) error {
+func handleWebConnect(service *config.Service) error {
 	url := service.WebConnectUrl
 	err := utils.OpenURL(url)
 	if err != nil {
