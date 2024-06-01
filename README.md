@@ -21,12 +21,8 @@ when I need some dirty server in docker**
 
 ## Installation
 
-- currently only via manual compilation
-
 ```powershell
-go get -U github.com:stefanjarina/sda
-cd $GOPATH/src/github.com/stefanjarina/sda
-go build
+go install github.com/stefanjarina/sda@latest
 ```
 
 ## Usage
@@ -105,6 +101,7 @@ sda connect ravendb --web
 
 ## TODO
 
+- [ ] better output for list command
 - [ ] add logs command
 - [ ] add --recreate flag to create command
 - [ ] add tests
