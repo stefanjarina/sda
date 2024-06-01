@@ -2,6 +2,14 @@
 
 A cli application for simply creating a various servers or apps in a docker containers
 
+This tool is not really meant to be robust, but rather a quick way to get a server up and running in a docker with 
+already set up volumes and ports as well as sitting in the same network as other services.
+
+It replaces for me a workflow of going to docker hub, finding an image, reading the docs, and running it via `docker run`.
+
+I provide a hefty list of already supported servers, but you can easily add your own by editing the `sda.yaml` file
+in `$HOME/.config/sda` directory.
+
 ## Disclaimers
 
 **This is PoC, a rewrite of a [powershell module](https://github.com/stefanjarina/SimpleDockerApps) I've used for a long time**
@@ -27,6 +35,7 @@ when I need some dirty server in docker**
   - [ ] create deb + rpm packages
 - [ ] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
 - [ ] Add versioning autoincrement (via tags?)
+- [ ] Support calling docker compose maybe? (e.g. for more complex setups)
 
 ## Installation
 
@@ -111,3 +120,4 @@ sda connect ravendb --web
 ### Ultimate TODO for services
 
 - [ ] elasticsearch - fix cli connect command
+- [ ] SurrealDB - add support
