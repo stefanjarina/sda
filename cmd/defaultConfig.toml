@@ -1,0 +1,701 @@
+defaultNetwork = "simple-docker-apps"
+defaultPassword = "Start123++"
+prefix = "sda"
+
+[[services]]
+name = "mssql"
+outputName = "MS SQL"
+defaultVersion = "latest"
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '{PASSWORD}'"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "mcr.microsoft.com/mssql/server"
+isPersistent = true
+envVars = ["ACCEPT_EULA=Y", "SA_PASSWORD={PASSWORD}", "MSSQL_PID=Developer"]
+additionalDockerArguments = ["--ulimit nofile=262144:262144"]
+customAppCommands = ""
+
+[[services.docker.portMappings]]
+host = 1_433
+container = 1_433
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/opt/mssql"
+isNamed = true
+
+[[services]]
+name = "postgres"
+outputName = "PostgreSQL"
+defaultVersion = 12
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "psql 'postgresql://postgres:{PASSWORD}@localhost:5432'"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "postgres"
+isPersistent = true
+envVars = ["POSTGRES_PASSWORD={PASSWORD}"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 5_432
+container = 5_432
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/lib/postgresql/data"
+isNamed = true
+
+[[services]]
+name = "mariadb"
+outputName = "MariaDB"
+defaultVersion = 10
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "mysql -uroot -p'{PASSWORD}'"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "mariadb"
+isPersistent = true
+envVars = ["MYSQL_ROOT_PASSWORD={PASSWORD}"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 3_306
+container = 3_306
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/lib/mysql"
+isNamed = true
+
+[[services]]
+name = "oracledb"
+outputName = "OracleDb"
+defaultVersion = "18.4.0-xe"
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "sqlplus sys/{PASSWORD}@//localhost:1521/XE as sysdba"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "oracle/database"
+isPersistent = true
+envVars = ["ORACLE_PWD={PASSWORD}"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 1_521
+container = 1_521
+
+[[services.docker.portMappings]]
+host = 5_500
+container = 5_500
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/opt/oracle/oradata"
+isNamed = true
+
+[[services]]
+name = "mongodb"
+outputName = "MongoDB"
+defaultVersion = "latest"
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "mongo -u admin -p {PASSWORD}"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "mongo"
+isPersistent = true
+envVars = [
+  "MONGO_INITDB_ROOT_USERNAME=admin",
+  "MONGO_INITDB_ROOT_PASSWORD={PASSWORD}",
+]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 27_017
+container = 27_017
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/data/db"
+isNamed = true
+
+[[services]]
+name = "redis"
+outputName = "Redis"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "redis-cli"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "redis"
+isPersistent = false
+volumes = []
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 6_379
+container = 6_379
+
+[[services]]
+name = "redispersistent"
+outputName = "Redis Persistent"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "redis-cli"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "redis"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = ["--appendonly yes"]
+
+[[services.docker.portMappings]]
+host = 6_379
+container = 6_379
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/data"
+isNamed = true
+
+[[services]]
+name = "cassandra"
+outputName = "Cassandra"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "cqlsh"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "cassandra"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 9_042
+container = 9_042
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/lib/cassandra"
+isNamed = true
+
+[[services]]
+name = "ravendb"
+outputName = "Ravendb"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "./rvn admin-channel"
+hasWebConnect = true
+webConnectUrl = "http://localhost:8080"
+
+[services.docker]
+imageName = "ravendb/ravendb"
+isPersistent = true
+envVars = [
+  "RAVEN_ARGS='--Setup.Mode=None'",
+  "RAVEN_Security_UnsecuredAccessAllowed='PrivateNetwork'",
+]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_080
+container = 8_080
+
+[[services.docker.portMappings]]
+host = 38_888
+container = 38_888
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/opt/RavenDB/Server/RavenData"
+isNamed = true
+
+[[services.docker.volumes]]
+source = "{NAME}-config"
+target = "/opt/RavenDB/config"
+isNamed = true
+
+[[services]]
+name = "clickhouse"
+outputName = "Clickhouse"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "clickhouse-client"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "yandex/clickhouse-server"
+isPersistent = true
+envVars = []
+additionalDockerArguments = ["--ulimit nofile=262144:262144"]
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_123
+container = 8_123
+
+[[services.docker.portMappings]]
+host = 9_000
+container = 9_000
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/lib/clickhouse"
+isNamed = true
+
+[[services]]
+name = "dremio"
+outputName = "Dremio"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = false
+cliConnectCommand = ""
+hasWebConnect = true
+webConnectUrl = "http://localhost:9047"
+
+[services.docker]
+imageName = "dremio/dremio-oss"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 9_047
+container = 9_047
+
+[[services.docker.portMappings]]
+host = 31_010
+container = 31_010
+
+[[services.docker.portMappings]]
+host = 45_678
+container = 45_678
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/opt/dremio/data"
+isNamed = true
+
+[[services.docker.volumes]]
+source = "{NAME}-config"
+target = "/opt/dremio/conf"
+isNamed = true
+
+[[services]]
+name = "dynamodb"
+outputName = "Dynamodb"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = false
+cliConnectCommand = ""
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "amazon/dynamodb-local"
+isPersistent = false
+volumes = []
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_000
+container = 8_000
+
+[[services]]
+name = "elasticsearch"
+outputName = "Elasticsearch"
+defaultVersion = "7.6.0"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "bin/elasticsearch-sql-cli"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "elasticsearch"
+isPersistent = true
+envVars = ["discovery.type=single-node"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 9_200
+container = 9_200
+
+[[services.docker.portMappings]]
+host = 9_300
+container = 9_300
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/usr/share/elasticsearch/data"
+isNamed = true
+
+[[services]]
+name = "solr"
+outputName = "Solr"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = false
+cliConnectCommand = ""
+hasWebConnect = true
+webConnectUrl = "http://localhost:8983/solr/"
+
+[services.docker]
+imageName = "solr"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_983
+container = 8_983
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/opt/solr/server/solr/mycores"
+isNamed = true
+
+[[services]]
+name = "neo4j"
+outputName = "Neo4j"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "cypher-shell -u neo4j -p neo4j"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "neo4j"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 7_474
+container = 7_474
+
+[[services.docker.portMappings]]
+host = 7_687
+container = 7_687
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/data"
+isNamed = true
+
+[[services]]
+name = "orientdb"
+outputName = "OrientDB"
+defaultVersion = "latest"
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "bin/console.sh"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "orientdb"
+isPersistent = true
+envVars = ["ORIENTDB_ROOT_PASSWORD={PASSWORD}"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 2_424
+container = 2_424
+
+[[services.docker.portMappings]]
+host = 2_480
+container = 2_480
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/orientdb/databases"
+isNamed = true
+
+[[services]]
+name = "arangodb"
+outputName = "ArangoDB"
+defaultVersion = "latest"
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "arangosh --server.password {PASSWORD}"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "arangodb"
+isPersistent = true
+envVars = ["ARANGO_ROOT_PASSWORD={PASSWORD}"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_529
+container = 8_529
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/lib/arangodb3"
+isNamed = true
+
+[[services.docker.volumes]]
+source = "{NAME}-apps"
+target = "/var/lib/arangodb3-apps"
+isNamed = true
+
+[[services]]
+name = "rethinkdb"
+outputName = "RethinkDB"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = false
+cliConnectCommand = ""
+hasWebConnect = true
+webConnectUrl = "http://localhost:8080"
+
+[services.docker]
+imageName = "rethinkdb"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_080
+container = 8_080
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/data"
+isNamed = true
+
+[[services]]
+name = "presto"
+outputName = "Presto"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = false
+cliConnectCommand = "presto-cli"
+hasWebConnect = true
+webConnectUrl = "http://localhost:8080"
+
+[services.docker]
+imageName = "starburstdata/presto"
+isPersistent = false
+volumes = []
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 8_080
+container = 8_080
+
+[[services]]
+name = "scylladb"
+outputName = "ScyllaDB"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "cqlsh"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "scylladb/scylla"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 9_042
+container = 9_042
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/var/lib/scylla"
+isNamed = true
+
+[[services]]
+name = "firebird"
+outputName = "Firebird"
+defaultVersion = "latest"
+hasPassword = true
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "/usr/local/firebird/bin/isql -user sysdba -password {PASSWORD}"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "jacobalberty/firebird"
+isPersistent = true
+envVars = ["ISC_PASSWORD={PASSWORD}"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 3_050
+container = 3_050
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/firebird"
+isNamed = true
+
+[[services]]
+name = "vertica"
+outputName = "Vertica"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "/opt/vertica/bin/admintools"
+hasWebConnect = false
+webConnectUrl = ""
+
+[services.docker]
+imageName = "jbfavre/vertica"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 5_433
+container = 5_433
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/home/dbadmin/docker"
+isNamed = true
+
+[[services]]
+name = "crate"
+outputName = "Crate"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = true
+cliConnectCommand = "crash"
+hasWebConnect = true
+webConnectUrl = "http://localhost:4200"
+
+[services.docker]
+imageName = "crate"
+isPersistent = true
+envVars = ["CRATE_HEAP_SIZE=2g"]
+additionalDockerArguments = []
+customAppCommands = []
+
+[[services.docker.portMappings]]
+host = 4_200
+container = 4_200
+
+[[services.docker.portMappings]]
+host = 4_300
+container = 4_300
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/data"
+isNamed = true
+
+[[services]]
+name = "portainer"
+outputName = "Portainer"
+defaultVersion = "latest"
+hasPassword = false
+customPassword = ""
+hasCliConnect = false
+cliConnectCommand = ""
+hasWebConnect = true
+webConnectUrl = "http://localhost:9000"
+
+[services.docker]
+imageName = "portainer/portainer"
+isPersistent = true
+envVars = []
+additionalDockerArguments = []
+customAppCommands = ["-H unix:///var/run/docker.sock"]
+
+[[services.docker.portMappings]]
+host = 9_000
+container = 9_000
+
+[[services.docker.volumes]]
+source = "{NAME}-data"
+target = "/data portainer/portainer"
+isNamed = true
+
+[[services.docker.volumes]]
+source = "/var/run/docker.sock"
+target = "/var/run/docker.sock"
+isNamed = false
