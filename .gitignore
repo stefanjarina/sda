@@ -3,6 +3,9 @@
 ##############
 
 .idea/
+sda
+sda.exe
+target/
 
 #################
 ### GENERATED ###

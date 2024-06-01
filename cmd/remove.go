@@ -1,27 +1,54 @@
 package cmd
 
 import (
-	"github.com/cloudflare/cfssl/log"
+	"fmt"
+	"os"
+	"sda/internal/config"
 	"sda/internal/docker"
+	"sda/internal/utils"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-// removeCmd represents the remove command
 var removeCmd = &cobra.Command{
-	Use:   "remove",
+	Use:   "remove [service]",
 	Short: "Remove a service",
 	Long:  `Remove a service`,
 	Run: func(cmd *cobra.Command, args []string) {
+		removeVolumes, _ := cmd.Flags().GetBool("volumes")
+
 		name := args[0]
 		client := docker.New()
+
 		if client.Exists(name) {
-			err := client.Start(name)
-			if err != nil {
-				log.Errorf("Failed to start service %s: %v", name, err)
+			confirmationMessage := fmt.Sprintf("Are you sure you want to remove '%s'? (Y/n): ", name)
+			if removeVolumes {
+				confirmationMessage = fmt.Sprintf("Are you sure you want to remove '%s' and all associated volumes? (Y/n): ", name)
 			}
+
+			confirmedRemove := utils.Confirm(confirmationMessage)
+			if !confirmedRemove {
+				os.Exit(0)
+			}
+			err := client.Remove(name, removeVolumes)
+			if err != nil {
+				utils.ErrorAndExit(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
+			}
+
+			if removeVolumes {
+				service := config.CONFIG.GetServiceByName(name)
+
+				volumes := docker.GetNamedVolumesForService(service)
+
+				confirmedVolumeRemove := utils.Confirm(fmt.Sprintf("These volumes will be removed: '%s' Proceed? (Y/n): ", strings.Join(volumes, ", ")))
+				if confirmedVolumeRemove {
+					client.RemoveVolumes(volumes)
+				}
+			}
+
 		} else {
-			log.Errorf("Service %s not found", name)
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
 		}
 	},
 }
@@ -29,13 +56,5 @@ var removeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(removeCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// removeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// removeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	removeCmd.Flags().Bool("volumes", false, "Remove also volumes")
 }

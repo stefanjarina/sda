@@ -1,6 +1,7 @@
 package config
 
 var CONFIG Config
+var JSON_OUTPUT bool
 
 type Config struct {
 	Network  string    `mapstructure:"defaultNetwork"`
@@ -54,7 +55,7 @@ func (c *Config) GetServiceByName(name string) *Service {
 }
 
 func (c *Config) GetAllServiceNames() []string {
-	names := []string{}
+	var names []string
 	for _, service := range c.Services {
 		names = append(names, service.Name)
 	}

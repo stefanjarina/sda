@@ -2,12 +2,10 @@ package docker
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"sda/internal/config"
-	"strings"
-
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"sda/internal/config"
+	"sda/internal/utils"
 )
 
 func (d *Api) ListAvailable() []ServiceInfo {
@@ -112,6 +110,30 @@ func (d *Api) ListStopped() []ServiceInfo {
 	return services
 }
 
+func (d *Api) GetInfo(name string) ServiceInfo {
+	listOptions := container.ListOptions{
+		Filters: filters.NewArgs(
+			filters.Arg("name", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)),
+		),
+		All: true,
+	}
+
+	result, _ := d.client.ContainerList(d.ctx, listOptions)
+	s := result[0]
+
+	serviceInfo := ServiceInfo{
+		Name:          getNameFromContainerName(s.Names[0]),
+		ContainerName: s.Names[0][1:],
+		ID:            s.ID,
+		Image:         s.Image,
+		Version:       getVersionFromImageName(s.Image),
+		Ports:         getPortsFromContainer(s.Ports),
+		Status:        s.Status,
+	}
+
+	return serviceInfo
+}
+
 func (d *Api) Start(name string) error {
 	err := d.client.ContainerStart(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.StartOptions{})
 	return err
@@ -125,9 +147,27 @@ func (d *Api) Stop(name string) error {
 func (d *Api) Remove(name string, removeVolumes bool) error {
 	err := d.client.ContainerRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.RemoveOptions{
 		Force:         true,
-		RemoveVolumes: removeVolumes,
+		RemoveVolumes: true,
 	})
+
 	return err
+}
+
+func (d *Api) RemoveVolumes(names []string) {
+	for _, name := range names {
+		_ = d.client.VolumeRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), true)
+	}
+}
+
+func (d *Api) Connect(name string, customPassword string, web bool) error {
+	service := config.CONFIG.GetServiceByName(name)
+
+	if web {
+		return handleWebConnect(service, name)
+	} else {
+		return handleCliConnect(service, customPassword, name)
+	}
+	return nil
 }
 
 func (d *Api) Exists(name string) bool {
@@ -142,20 +182,34 @@ func (d *Api) Exists(name string) bool {
 	return len(result) > 0
 }
 
-func getNameFromContainerName(containerName string) string {
-	containerName = containerName[len(config.CONFIG.Prefix)+2:]
-	return containerName
-}
-
-func getVersionFromImageName(imageName string) string {
-	imageName = imageName[strings.LastIndex(imageName, ":")+1:]
-	return imageName
-}
-
-func getPortsFromContainer(containerPorts []types.Port) []string {
-	var ports []string
-	for _, port := range containerPorts {
-		ports = append(ports, fmt.Sprintf("%d:%d", port.PublicPort, port.PrivatePort))
+func handleWebConnect(service *config.Service, name string) error {
+	url := service.WebConnectUrl
+	err := utils.OpenURL(url)
+	if err != nil {
+		return err
 	}
-	return ports
+
+	return nil
+}
+
+func handleCliConnect(service *config.Service, customPassword, name string) error {
+	var cmd string
+	if service.HasPassword {
+		var passwordToUse string
+		if customPassword != "" {
+			passwordToUse = customPassword
+		} else {
+			passwordToUse = config.CONFIG.Password
+		}
+		cmd = replacePassword(service.CliConnectCommand, service, passwordToUse)
+	} else {
+		cmd = service.CliConnectCommand
+	}
+
+	err := utils.RunInteractive(cmd, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

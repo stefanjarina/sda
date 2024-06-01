@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sda/internal/config"
+	"sda/internal/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,7 +15,7 @@ import (
 
 var cfgFile string
 
-//go:embed defaultConfig.toml
+//go:embed defaultConfig.yaml
 var defaultCfgFile []byte
 
 var rootCmd = &cobra.Command{
@@ -35,6 +36,8 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/sda/sda.toml)")
+	rootCmd.PersistentFlags().Bool("json", false, "output as json")
+	_ = viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
 }
 
 func initConfig() {
@@ -44,13 +47,12 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 		cfgPath := path.Join(home, ".config", "sda")
-		cfgFile = path.Join(cfgPath, "sda.toml")
+		cfgFile = path.Join(cfgPath, "sda.yaml")
 
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 			err := os.MkdirAll(cfgPath, 0755)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error creating config directory:", err)
-				os.Exit(1)
+				utils.ErrorAndExit(fmt.Sprintf("Error creating config directory: %v", err))
 			}
 		}
 
@@ -64,18 +66,15 @@ func initConfig() {
 	}
 
 	if err := viper.Unmarshal(&config.CONFIG); err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading config file:", err)
+		utils.ErrorAndExit(fmt.Sprintf("Error reading config file: %v", err))
 	}
 }
 
 func saveConfig(defaultConfig []byte) {
 	r := bytes.NewReader(defaultConfig)
-	viper.ReadConfig(r)
+	_ = viper.ReadConfig(r)
 
-	os.WriteFile(cfgFile, defaultConfig, 0644)
-
-	if err := viper.WriteConfig(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error writing config file:", err)
-		os.Exit(1)
+	if err := os.WriteFile(cfgFile, defaultConfig, 0644); err != nil {
+		utils.ErrorAndExit(fmt.Sprintf("Error writing config file: %v", err))
 	}
 }

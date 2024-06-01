@@ -55,10 +55,14 @@ func init() {
 }
 
 func printServices(title string, services []docker.ServiceInfo, fn printFn) {
-	fmt.Println(title)
+	if len(services) != 0 {
+		fmt.Println(title)
 
-	for _, service := range services {
-		fn(service)
+		for _, service := range services {
+			fn(service)
+		}
+	} else {
+		fmt.Println("Nothing to show.")
 	}
 }
 

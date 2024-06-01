@@ -1,20 +1,16 @@
 package utils
 
 import (
-	"fmt"
-
-	"github.com/charmbracelet/huh"
+	"github.com/erikgeiser/promptkit/confirmation"
 )
 
 func Confirm(question string) bool {
-	confirm := true
-	huh.NewConfirm().
-		Title(fmt.Sprintf("%s ", question)).
-		Affirmative("Yes!").
-		Negative("No.").
-		Value(&confirm).
-		Inline(true).
-		Value(&confirm).
-		Run()
-	return confirm
+	input := confirmation.New(question, confirmation.Yes)
+
+	answer, err := input.RunPrompt()
+	if err != nil {
+		return false
+	}
+
+	return answer
 }

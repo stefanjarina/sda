@@ -1,29 +1,31 @@
 package cmd
 
 import (
-	"github.com/cloudflare/cfssl/log"
-	"sda/internal/config"
+	"fmt"
 	"sda/internal/docker"
+	"sda/internal/utils"
 
 	"github.com/spf13/cobra"
 )
 
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
-	Use:   "stop",
+	Use:   "stop [service]",
 	Short: "Stop a service",
 	Long:  `Stop a service`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		if service := config.CONFIG.GetServiceByName(name); service != nil {
-			client := docker.New()
+		client := docker.New()
+		if client.Exists(name) {
 			err := client.Stop(name)
 			if err != nil {
-				log.Errorf("Failed to start service %s: %v", name, err)
+				utils.ErrorAndExit(fmt.Sprintf("Failed to stop service '%s': %v", name, err))
 			}
+
+			fmt.Printf("Service '%s' stopped\n", name)
 		} else {
-			log.Errorf("Service %s not found", name)
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
 		}
 	},
 }

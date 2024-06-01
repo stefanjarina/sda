@@ -1,28 +1,30 @@
 package cmd
 
 import (
-	"github.com/cloudflare/cfssl/log"
+	"fmt"
 	"github.com/spf13/cobra"
-	"sda/internal/config"
 	"sda/internal/docker"
+	"sda/internal/utils"
 )
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
-	Use:   "start",
+	Use:   "start [service]",
 	Short: "Start a service",
 	Long:  `Start a service`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		if service := config.CONFIG.GetServiceByName(name); service != nil {
-			client := docker.New()
+		client := docker.New()
+		if client.Exists(name) {
 			err := client.Start(name)
 			if err != nil {
-				log.Errorf("Failed to start service %s: %v", name, err)
+				utils.ErrorAndExit(fmt.Sprintf("Failed to start service '%s': %v\n", name, err))
 			}
+
+			fmt.Printf("Service '%s' started\n", name)
 		} else {
-			log.Errorf("Service %s not found", name)
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
 		}
 	},
 }
