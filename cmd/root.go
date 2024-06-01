@@ -4,10 +4,10 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/utils"
 	"os"
 	"path"
-	"sda/internal/config"
-	"sda/internal/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

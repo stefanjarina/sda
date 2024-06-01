@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"sda/internal/config"
-	"sda/internal/utils"
+	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 func (d *Api) ListAvailable() []ServiceInfo {

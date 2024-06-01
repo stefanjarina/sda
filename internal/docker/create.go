@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/go-connections/nat"
-	"sda/internal/config"
+	"github.com/stefanjarina/sda/internal/config"
 )
 
 func (d *Api) Create(name string) error {

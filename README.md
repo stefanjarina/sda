@@ -21,8 +21,12 @@ when I need some dirty server in docker**
 
 ## Installation
 
+- currently only via manual compilation
+
 ```powershell
-go install github.com:stefanjarina/sda
+go get -U github.com:stefanjarina/sda
+cd $GOPATH/src/github.com/stefanjarina/sda
+go build
 ```
 
 ## Usage

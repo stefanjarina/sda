@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/docker"
+	"github.com/stefanjarina/sda/internal/utils"
 	"os"
-	"sda/internal/config"
-	"sda/internal/docker"
-	"sda/internal/utils"
 )
 
 // newCmd represents the new command

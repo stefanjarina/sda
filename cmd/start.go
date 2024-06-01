@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"sda/internal/docker"
-	"sda/internal/utils"
+	"github.com/stefanjarina/sda/internal/docker"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 // startCmd represents the start command

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"sda/internal/docker"
-	"sda/internal/utils"
+	"github.com/stefanjarina/sda/internal/docker"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 // showCmd represents the show command

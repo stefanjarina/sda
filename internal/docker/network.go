@@ -2,8 +2,8 @@ package docker
 
 import (
 	"fmt"
-	"sda/internal/config"
-	"sda/internal/utils"
+	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/utils"
 
 	"github.com/docker/docker/api/types"
 )

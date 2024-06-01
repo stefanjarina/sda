@@ -1,6 +1,6 @@
 package main
 
-import "sda/cmd"
+import "github.com/stefanjarina/sda/cmd"
 
 func main() {
 	cmd.Execute()

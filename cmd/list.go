@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"sda/internal/docker"
+	"github.com/stefanjarina/sda/internal/docker"
 	"strings"
 
 	"github.com/spf13/cobra"

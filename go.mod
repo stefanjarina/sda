@@ -1,4 +1,4 @@
-module sda
+module github.com/stefanjarina/sda
 
 go 1.22
 
