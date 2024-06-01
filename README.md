@@ -1,6 +1,6 @@
 # sda (Simple Docker Apps)
 
-A cli application for simply creating a various servers or apps in a docker containers
+A cli application for simply creating various servers or apps in a docker containers
 
 This tool is not really meant to be robust, but rather a quick way to get a server up and running in a docker with 
 already set up volumes and ports as well as sitting in the same network as other services.
@@ -18,24 +18,6 @@ in `$HOME/.config/sda` directory.
 
 **This is also project written while learning language and because I use it often
 when I need some dirty server in docker**
-
-## TODO
-
-- [ ] add logs command
-- [ ] add --recreate flag to create command
-- [ ] add tests
-- [ ] support bulk actions (stop/start all, etc.)
-- [ ] Generate documentation
-- [ ] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
-- [ ] Add GitHub Actions for CI/CD
-  - [ ] Create GitHub release
-- [ ] Improve installation instructions
-  - [ ] create windows installer
-  - [ ] investigate scoop, chocolatey, winget
-  - [ ] create deb + rpm packages
-- [ ] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
-- [ ] Add versioning autoincrement (via tags?)
-- [ ] Support calling docker compose maybe? (e.g. for more complex setups)
 
 ## Installation
 
@@ -116,6 +98,24 @@ sda connect ravendb --web
 - [Vertica](https://www.vertica.com/) - [Docker HUB page](https://hub.docker.com/r/jbfavre/vertica)
 - [Crate](https://crate.io/) - [Docker HUB page](https://hub.docker.com/_/crate)
 - [Portainer](https://www.portainer.io/) - [Docker HUB page](https://hub.docker.com/r/portainer/portainer)
+
+## TODO
+
+- [ ] add logs command
+- [ ] add --recreate flag to create command
+- [ ] add tests
+- [ ] support bulk actions (stop/start all, etc.)
+- [ ] Generate documentation
+- [ ] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
+- [ ] Add GitHub Actions for CI/CD
+    - [ ] Create GitHub release
+- [ ] Improve installation instructions
+    - [ ] create windows installer
+    - [ ] investigate scoop, chocolatey, winget
+    - [ ] create deb + rpm packages
+- [ ] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
+- [ ] Add versioning autoincrement (via tags?)
+- [ ] Support calling docker compose maybe? (e.g. for more complex setups)
 
 ### Ultimate TODO for services
 
