@@ -546,6 +546,122 @@ services:
         - source: '{{.NAME}}-data'
           target: /data
           isNamed: true
+  - name: couchbase
+    outputName: Couchbase
+    defaultVersion: community
+    hasPassword: true
+    customPassword: ''
+    hasCliConnect: true
+    cliConnectCommand: cbq --user Administrator --password {{.PASSWORD}}
+    hasWebConnect: true
+    webConnectUrl: http://localhost:8091
+    docker:
+      imageName: couchbase
+      isPersistent: true
+      envVars: []
+      additionalDockerArguments: []
+      customAppCommands: []
+      portMappings:
+        - host: 8091
+          container: 8091
+        - host: 8092
+          container: 8092
+        - host: 8093
+          container: 8093
+        - host: 8094
+          container: 8094
+        - host: 8095
+          container: 8095
+        - host: 8096
+          container: 8096
+        - host: 8097
+          container: 8097
+        - host: 9123
+          container: 9123
+        - host: 11207
+          container: 11207
+        - host: 11210
+          container: 11210
+        - host: 11280
+          container: 11280
+        - host: 18091
+          container: 18091
+        - host: 18092
+          container: 18092
+        - host: 18093
+          container: 18093
+        - host: 18094
+          container: 18094
+        - host: 18095
+          container: 18095
+        - host: 18096
+          container: 18096
+        - host: 18097
+          container: 18097
+      volumes:
+        - source: '{{.NAME}}-data'
+          target: /opt/couchbase/var
+          isNamed: true
+  - name: marklogic
+    outputName: MarkLogic Server
+    defaultVersion: latest
+    hasPassword: true
+    customPassword: ''
+    hasCliConnect: false
+    cliConnectCommand: ''
+    hasWebConnect: true
+    webConnectUrl: http://localhost:8001
+    docker:
+      imageName: marklogicdb/marklogic-db
+      isPersistent: true
+      envVars:
+        - MARKLOGIC_INIT=true
+        - MARKLOGIC_ADMIN_USERNAME=admin
+        - MARKLOGIC_ADMIN_PASSWORD={{.PASSWORD}}
+        - MARKLOGIC_WALLET_PASSWORD={{.PASSWORD}}
+        - REALM=public
+      additionalDockerArguments: []
+      customAppCommands: []
+      portMappings:
+        - host: 8000
+          container: 8000
+        - host: 8001
+          container: 8001
+        - host: 8002
+          container: 8002
+      volumes:
+        - source: '{{.NAME}}-data'
+          target: /var/opt/MarkLogic
+          isNamed: true
+  - name: aerospike
+    outputName: Aerospike
+    defaultVersion: ce-7.1.0.0
+    hasPassword: false
+    customPassword: ''
+    hasCliConnect: false
+    cliConnectCommand: ''
+    hasWebConnect: false
+    webConnectUrl: ''
+    docker:
+      imageName: aerospike
+      isPersistent: true
+      envVars: []
+      additionalDockerArguments: []
+      customAppCommands: []
+      portMappings:
+        - host: 3000
+          container: 3000
+        - host: 3001
+          container: 3001
+        - host: 3002
+          container: 3002
+      volumes:
+        - source: '{{.NAME}}-data'
+          target: /opt/aerospike/data
+          isNamed: true
+        - source: '{{.NAME}}-config'
+          target: /opt/aerospike/etc
+          isNamed: true
   - name: surrealdb
     outputName: SurrealDB
     defaultVersion: latest

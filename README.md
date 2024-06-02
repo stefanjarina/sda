@@ -98,7 +98,10 @@ sda connect ravendb --web
 | firebird        | [Firebird](https://firebirdsql.org/)                                 | [Docker HUB](https://hub.docker.com/r/jacobalberty/firebird)    |
 | vertica         | [Vertica](https://www.vertica.com/)                                  | [Docker HUB](https://hub.docker.com/r/jbfavre/vertica)          |
 | crate           | [Crate](https://crate.io/)                                           | [Docker HUB](https://hub.docker.com/_/crate)                    |
+| couchbase       | [Couchbase](https://www.couchbase.com/)                              | [Docker HUB](https://hub.docker.com/_/couchbase)                |
+| marklogic       | [MarkLogic Server](https://www.progress.com/marklogic)               | [Docker HUB](https://hub.docker.com/r/marklogicdb/marklogic-db) |
 | surrealdb       | [SurrealDB](https://surrealdb.com/)                                  | [Docker HUB](https://hub.docker.com/r/surrealdb/surrealdb)      |
+| aerospike       | [Aerospike](https://aerospike.com/)                                  | [Docker HUB](https://hub.docker.com/_/aerospike)                |
 | portainer       | [Portainer](https://www.portainer.io/)                               | [Docker HUB](https://hub.docker.com/r/portainer/portainer)      |
 
 
