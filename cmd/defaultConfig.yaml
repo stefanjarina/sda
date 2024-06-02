@@ -546,6 +546,34 @@ services:
         - source: '{{.NAME}}-data'
           target: /data
           isNamed: true
+  - name: surrealdb
+    outputName: SurrealDB
+    defaultVersion: latest
+    hasPassword: true
+    customPassword: ''
+    hasCliConnect: true
+    cliConnectCommand: '/surreal sql -u root -p {{.PASSWORD}} --pretty'
+    hasWebConnect: false
+    webConnectUrl: ''
+    docker:
+      imageName: surrealdb/surrealdb
+      isPersistent: false
+      envVars: []
+      additionalDockerArguments: []
+      customAppCommands:
+        [
+          'start',
+          '--auth',
+          '--user',
+          'root',
+          '--pass',
+          '{{.PASSWORD}}',
+          'memory',
+        ]
+      portMappings:
+        - host: 8000
+          container: 8000
+      volumes: []
   - name: portainer
     outputName: Portainer
     defaultVersion: latest

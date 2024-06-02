@@ -2,8 +2,8 @@ package docker
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/go-connections/nat"
@@ -38,7 +38,15 @@ func (d *Api) Create(name string) error {
 		containerConfig.Env = envVars
 	}
 
-	containerConfig.Cmd = service.Docker.CustomAppCommands
+	if service.Docker.CustomAppCommands != nil {
+		// patchEnvVars
+		var customCommands []string
+		for _, customCommand := range service.Docker.CustomAppCommands {
+			customCommands = append(customCommands, replacePassword(customCommand, service, config.CONFIG.Password))
+		}
+
+		containerConfig.Cmd = customCommands
+	}
 
 	if service.Docker.Volumes != nil {
 		//hostConfig.Mounts, _ = d.mapMounts(service.Docker.Volumes, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
@@ -66,7 +74,7 @@ func (d *Api) fetchImageIfNotExists(name string, version string) error {
 	nameAndVersion := fmt.Sprintf("%s:%s", name, version)
 	_, _, err := d.client.ImageInspectWithRaw(d.ctx, name)
 	if err != nil {
-		reader, err := d.client.ImagePull(d.ctx, nameAndVersion, types.ImagePullOptions{})
+		reader, err := d.client.ImagePull(d.ctx, nameAndVersion, image.PullOptions{})
 		if err != nil {
 			return err
 		}
