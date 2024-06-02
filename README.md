@@ -73,28 +73,34 @@ sda connect ravendb --web
 
 ## Supported Services
 
-- [MS SQL](https://www.microsoft.com/en-us/sql-server/sql-server-2019) - [Docker HUB page](https://hub.docker.com/_/microsoft-mssql-server)
-- [Postgres](https://www.postgresql.org/) - [Docker HUB page](https://hub.docker.com/_/postgres)
-- [Mariadb](https://mariadb.org/) - [Docker HUB page](https://hub.docker.com/_/mariadb)
-- [Mongodb](https://www.mongodb.com/) - [Docker HUB page](https://hub.docker.com/_/mongo)
-- [Redis](https://redis.io/) - [Docker HUB page](https://hub.docker.com/_/redis)
-- [Cassandra](http://cassandra.apache.org/) - [Docker HUB page](https://hub.docker.com/_/cassandra)
-- [Ravendb](https://ravendb.net/) - [Docker HUB page](https://hub.docker.com/r/ravendb/ravendb)
-- [Clickhouse](https://clickhouse.yandex/) - [Docker HUB page](https://hub.docker.com/r/yandex/clickhouse-server)
-- [Dremio](https://www.dremio.com/) - [Docker HUB page](https://hub.docker.com/r/dremio/dremio-oss)
-- [Dynamodb](https://aws.amazon.com/dynamodb/) - [Docker HUB page](https://hub.docker.com/r/amazon/dynamodb-local/)
-- [Elasticsearch](https://www.elastic.co/) - [Docker HUB page](https://hub.docker.com/_/elasticsearch)
-- [Solr](https://lucene.apache.org/solr/) - [Docker HUB page](https://hub.docker.com/_/solr)
-- [Neo4j](https://neo4j.com/) - [Docker HUB page](https://hub.docker.com/_/neo4j)
-- [OrientDB](https://orientdb.com/) - [Docker HUB page](https://hub.docker.com/_/orientdb)
-- [ArangoDB](https://www.arangodb.com/) - [Docker HUB page](https://hub.docker.com/_/arangodb)
-- [RethinkDB](https://rethinkdb.com/) - [Docker HUB page](https://hub.docker.com/_/rethinkdb)
-- [Presto](https://prestodb.io/) - [Docker HUB page](https://hub.docker.com/r/starburstdata/presto)
-- [ScyllaDB](https://www.scylladb.com/) - [Docker HUB page](https://hub.docker.com/r/scylladb/scylla)
-- [Firebird](https://firebirdsql.org/) - [Docker HUB page](https://hub.docker.com/r/jacobalberty/firebird)
-- [Vertica](https://www.vertica.com/) - [Docker HUB page](https://hub.docker.com/r/jbfavre/vertica)
-- [Crate](https://crate.io/) - [Docker HUB page](https://hub.docker.com/_/crate)
-- [Portainer](https://www.portainer.io/) - [Docker HUB page](https://hub.docker.com/r/portainer/portainer)
+| name            | Website                                                              | Docker HUB                                                      |
+|-----------------|----------------------------------------------------------------------|-----------------------------------------------------------------|
+| mssql           | [MS SQL](https://www.microsoft.com/en-us/sql-server/sql-server-2019) | [Docker HUB](https://hub.docker.com/_/microsoft-mssql-server)   |
+| postgres        | [Postgres](https://www.postgresql.org/)                              | [Docker HUB](https://hub.docker.com/_/postgres)                 |
+| mariadb         | [Mariadb](https://mariadb.org/)                                      | [Docker HUB](https://hub.docker.com/_/mariadb)                  |
+| mysql           | [Mariadb](https://mariadb.org/)                                      | [Docker HUB](https://hub.docker.com/_/mysql)                    |
+| mongodb         | [Mongodb](https://www.mongodb.com/)                                  | [Docker HUB](https://hub.docker.com/_/mongo)                    |
+| redis           | [Redis](https://redis.io/)                                           | [Docker HUB](https://hub.docker.com/_/redis)                    |
+| redispersistent | [Redis](https://redis.io/)                                           | [Docker HUB](https://hub.docker.com/_/redis)                    |
+| cassandra       | [Cassandra](http://cassandra.apache.org/)                            | [Docker HUB](https://hub.docker.com/_/cassandra)                |
+| ravendb         | [Ravendb](https://ravendb.net/)                                      | [Docker HUB](https://hub.docker.com/r/ravendb/ravendb)          |
+| clickhouse      | [Clickhouse](https://clickhouse.yandex/)                             | [Docker HUB](https://hub.docker.com/r/yandex/clickhouse-server) |
+| dremio          | [Dremio](https://www.dremio.com/)                                    | [Docker HUB](https://hub.docker.com/r/dremio/dremio-oss)        |
+| dynamodb        | [Dynamodb](https://aws.amazon.com/dynamodb/)                         | [Docker HUB](https://hub.docker.com/r/amazon/dynamodb-local/)   |
+| elasticsearch   | [Elasticsearch](https://www.elastic.co/)                             | [Docker HUB](https://hub.docker.com/_/elasticsearch)            |
+| solr            | [Solr](https://lucene.apache.org/solr/)                              | [Docker HUB](https://hub.docker.com/_/solr)                     |
+| neo4j           | [Neo4j](https://neo4j.com/)                                          | [Docker HUB](https://hub.docker.com/_/neo4j)                    |
+| orientdb        | [OrientDB](https://orientdb.com/)                                    | [Docker HUB](https://hub.docker.com/_/orientdb)                 |
+| arangodb        | [ArangoDB](https://www.arangodb.com/)                                | [Docker HUB](https://hub.docker.com/_/arangodb)                 |
+| rethinkdb       | [RethinkDB](https://rethinkdb.com/)                                  | [Docker HUB](https://hub.docker.com/_/rethinkdb)                |
+| presto          | [Presto](https://prestodb.io/)                                       | [Docker HUB](https://hub.docker.com/r/starburstdata/presto)     |
+| scylladb        | [ScyllaDB](https://www.scylladb.com/)                                | [Docker HUB](https://hub.docker.com/r/scylladb/scylla)          |
+| firebird        | [Firebird](https://firebirdsql.org/)                                 | [Docker HUB](https://hub.docker.com/r/jacobalberty/firebird)    |
+| vertica         | [Vertica](https://www.vertica.com/)                                  | [Docker HUB](https://hub.docker.com/r/jbfavre/vertica)          |
+| crate           | [Crate](https://crate.io/)                                           | [Docker HUB](https://hub.docker.com/_/crate)                    |
+| surrealdb       | [SurrealDB](https://surrealdb.com/)                                  | [Docker HUB](https://hub.docker.com/r/surrealdb/surrealdb)      |
+| portainer       | [Portainer](https://www.portainer.io/)                               | [Docker HUB](https://hub.docker.com/r/portainer/portainer)      |
+
 
 ## TODO
 
@@ -118,4 +124,4 @@ sda connect ravendb --web
 ### Ultimate TODO for services
 
 - [ ] elasticsearch - fix cli connect command
-- [ ] SurrealDB - add support
+- [x] SurrealDB - add support
