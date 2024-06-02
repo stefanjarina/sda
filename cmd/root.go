@@ -37,6 +37,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/sda/sda.toml)")
 	rootCmd.PersistentFlags().Bool("json", false, "output as json")
+	rootCmd.PersistentFlags().BoolP("yes", "y", false, "answer yes to all questions")
 	_ = viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
 }
 

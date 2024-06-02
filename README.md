@@ -5,7 +5,10 @@ A cli application for simply creating various servers or apps in a docker contai
 This tool is not really meant to be robust, but rather a quick way to get a server up and running in a docker with 
 already set up volumes and ports as well as sitting in the same network as other services.
 
-It replaces for me a workflow of going to docker hub, finding an image, reading the docs, and running it via `docker run`.
+It is meant only for development purposes as it does not provide any security or performance optimizations needed for use in production.
+
+It replaces for me a workflow of going to docker hub, finding an image, reading the docs, and running it via `docker run` every time I need it.
+Instead I add it to config file and it is ready to go wherever I need it.
 
 I provide a hefty list of already supported servers, but you can easily add your own by editing the `sda.yaml` file
 in `$HOME/.config/sda` directory.
@@ -73,12 +76,6 @@ sda connect ravendb --web
 - [MS SQL](https://www.microsoft.com/en-us/sql-server/sql-server-2019) - [Docker HUB page](https://hub.docker.com/_/microsoft-mssql-server)
 - [Postgres](https://www.postgresql.org/) - [Docker HUB page](https://hub.docker.com/_/postgres)
 - [Mariadb](https://mariadb.org/) - [Docker HUB page](https://hub.docker.com/_/mariadb)
-- [OracleDb](https://www.oracle.com/database/) - (Unfortunately this requires local built image due to Oracles inability to provide one)
-    - Instructions for building an image are in [oracle/docker-images repo](https://github.com/oracle/docker-images/tree/master/OracleDatabase/SingleInstance)
-    - Oracle really missed a train here, it is not a simple task to get it running in docker
-    - It can be built only in linux as they provide only shell scripts (/sight)
-    - I might still have somewhere powershell scripts for building oracle, but no plans to provide them right now
-    - Seriously, just ditch this mess of a database for something more sane, like MSSQL or PostgreSQL
 - [Mongodb](https://www.mongodb.com/) - [Docker HUB page](https://hub.docker.com/_/mongo)
 - [Redis](https://redis.io/) - [Docker HUB page](https://hub.docker.com/_/redis)
 - [Cassandra](http://cassandra.apache.org/) - [Docker HUB page](https://hub.docker.com/_/cassandra)

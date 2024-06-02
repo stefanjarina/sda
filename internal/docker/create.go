@@ -2,11 +2,13 @@ package docker
 
 import (
 	"fmt"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/go-connections/nat"
 	"github.com/stefanjarina/sda/internal/config"
+	"io"
 )
 
 func (d *Api) Create(name string) error {
@@ -14,6 +16,11 @@ func (d *Api) Create(name string) error {
 
 	if d.Exists(name) {
 		return fmt.Errorf("Service %s already exists", name)
+	}
+
+	err := d.fetchImageIfNotExists(service.Docker.ImageName, service.Version)
+	if err != nil {
+		return err
 	}
 
 	containerConfig := &container.Config{}
@@ -47,11 +54,30 @@ func (d *Api) Create(name string) error {
 	//parse --ulimit nofile=262144:262144 from additional arguments
 	hostConfig.Ulimits = parseUlimits(service.Docker.AdditionalDockerArguments)
 
-	_, err := d.client.ContainerCreate(d.ctx, containerConfig, hostConfig, nil, nil, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
+	_, err = d.client.ContainerCreate(d.ctx, containerConfig, hostConfig, nil, nil, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (d *Api) fetchImageIfNotExists(name string, version string) error {
+	nameAndVersion := fmt.Sprintf("%s:%s", name, version)
+	_, _, err := d.client.ImageInspectWithRaw(d.ctx, name)
+	if err != nil {
+		reader, err := d.client.ImagePull(d.ctx, nameAndVersion, types.ImagePullOptions{})
+		if err != nil {
+			return err
+		}
+		defer reader.Close()
+
+		fmt.Printf("Unable to find image '%s' locally. Pulling '%s' from '%s'...\n", nameAndVersion, version, name)
+		_, err = io.Copy(io.Discard, reader)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
