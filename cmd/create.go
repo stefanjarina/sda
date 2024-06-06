@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
-	"os"
 )
 
 // createCmd represents the new command
@@ -67,7 +68,7 @@ var createCmd = &cobra.Command{
 
 		if !cli.CheckNetwork() {
 			if !yes {
-				confirmedNetworkCreation := utils.Confirm(fmt.Sprintf("Network '%s' does not exist yet. Create it? (Y/n): ", networkName))
+				confirmedNetworkCreation := utils.Confirm(fmt.Sprintf("Network '%s' does not exist yet. Create it? (Y/n): ", config.CONFIG.Network))
 				if !confirmedNetworkCreation {
 					utils.ErrorAndExit("Aborting, network must exist to create service")
 				}

@@ -22,7 +22,7 @@ func RunInteractive(command string, containerName string) error {
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("pwsh", "-ExecutionPolicy", "Unrestricted", "-Command", fmt.Sprintf("docker exec -it %s %s\n", containerName, command))
 	} else {
-		cmd = exec.Command("zsh", "-c", "source ~/.zshrc; "+command)
+		cmd = exec.Command("zsh", "-c", "source ~/.zshrc; "+fmt.Sprintf("docker exec -it %s %s\n", containerName, command))
 	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
