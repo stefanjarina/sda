@@ -4,10 +4,11 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"github.com/stefanjarina/sda/internal/config"
-	"github.com/stefanjarina/sda/internal/utils"
 	"os"
 	"path"
+
+	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,7 +21,7 @@ var defaultCfgFile []byte
 
 var rootCmd = &cobra.Command{
 	Use:     "sda",
-	Version: "0.0.4",
+	Version: "0.0.6",
 	Short:   "Simple Docker Apps",
 	Long:    `Simple Docker Apps`,
 }

@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
-	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -15,6 +16,7 @@ var removeCmd = &cobra.Command{
 	Use:   "remove [service]",
 	Short: "Remove a service",
 	Long:  `Remove a service`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		removeVolumes, _ := cmd.Flags().GetBool("volumes")
 		yes, _ := cmd.Flags().GetBool("yes")
