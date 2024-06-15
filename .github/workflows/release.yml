@@ -10,6 +10,9 @@ jobs:
   release:
     runs-on: self-hosted
     steps:
+      - name: Clean Workspace
+        run: rm -rf ${{ github.workspace }}/*
+
       - uses: actions/checkout@v4
 
       - name: Setup Go
