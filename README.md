@@ -24,6 +24,10 @@ when I need some dirty server in docker**
 
 ## Installation
 
+- Download linux or windows binary from [Releases](https://github.com/stefanjarina/sda/releases/latest)
+
+- Using Golang
+
 ```powershell
 go install github.com/stefanjarina/sda@latest
 ```
@@ -114,12 +118,14 @@ sda connect ravendb --web
 - [ ] support bulk actions (stop/start all, etc.)
 - [ ] Generate documentation
 - [ ] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
-- [ ] Add GitHub Actions for CI/CD
-    - [ ] Create GitHub release
+- [X] Add GitHub Actions for CI/CD
+    - [X] Create GitHub release
 - [ ] Improve installation instructions
     - [ ] create windows installer
     - [ ] investigate scoop, chocolatey, winget
     - [ ] create deb + rpm packages
+    - [ ] investigate snap
+    - [ ] investigate AUR
 - [ ] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
 - [ ] Add versioning autoincrement (via tags?)
 - [ ] Support calling docker compose maybe? (e.g. for more complex setups)
