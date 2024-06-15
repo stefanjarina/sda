@@ -38,7 +38,7 @@ default:
 # Test the application
 @test:
         echo "Testing..."
-        go test ./tests -v
+        go test -v ./...
 
 # Clean the binary
 [unix]

@@ -8,13 +8,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Setup Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.22'
 
+      - name: Setup Just
+        uses: extractions/setup-just@v2
+
       - name: Build
-        run: go build -v ./...
+        run: just build
 
       - name: Test
-        run: go test -v ./...
+        run: just test
