@@ -15,13 +15,13 @@ default:
 [unix]
 @build-all:
         echo "Building for 'windows/amd64'..."
-        env GOOS=windows GOARCH=amd64 go build -o target/{{ app_name }}-$($Env:GOOS)-$($Env:GOARCH).exe main.go
+        env GOOS=windows GOARCH=amd64 go build -o target/{{ app_name }}-$GOOS-$GOARCH.exe main.go
         echo "Building for 'windows/arm64'..."
-        env GOOS=windows GOARCH=arm64 go build -o target/{{ app_name }}-$($Env:GOOS)-$($Env:GOARCH).exe main.go
+        env GOOS=windows GOARCH=arm64 go build -o target/{{ app_name }}-$GOOS-$GOARCH.exe main.go
         echo "Building for 'linux/amd64'..."
-        env GOOS=linux GOARCH=amd64 go build -o target/{{ app_name }}-$($Env:GOOS)-$($Env:GOARCH) main.go
+        env GOOS=linux GOARCH=amd64 go build -o target/{{ app_name }}-$GOOS-$GOARCH main.go
         echo "Building for 'linux/arm64'..."
-        env GOOS=linux GOARCH=arm64 go build -o target/{{ app_name }}-$($Env:GOOS)-$($Env:GOARCH) main.go
+        env GOOS=linux GOARCH=arm64 go build -o target/{{ app_name }}-$GOOS-$GOARCH main.go
 
 # Build for all platforms
 [windows]
