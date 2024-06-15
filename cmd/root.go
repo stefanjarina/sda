@@ -21,7 +21,7 @@ var defaultCfgFile []byte
 
 var rootCmd = &cobra.Command{
 	Use:     "sda",
-	Version: "0.0.6",
+	Version: "0.0.7",
 	Short:   "Simple Docker Apps",
 	Long:    `Simple Docker Apps`,
 }
