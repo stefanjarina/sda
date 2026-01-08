@@ -2,12 +2,13 @@ package docker
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types"
+
+	"github.com/docker/docker/api/types/network"
 	"github.com/stefanjarina/sda/internal/config"
 )
 
 func (d *Api) CheckNetwork() bool {
-	network, err := d.client.NetworkInspect(d.ctx, config.CONFIG.Network, types.NetworkInspectOptions{})
+	network, err := d.client.NetworkInspect(d.ctx, config.CONFIG.Network, network.InspectOptions{})
 	if network.Name == "" {
 		return false
 	}
@@ -16,7 +17,7 @@ func (d *Api) CheckNetwork() bool {
 }
 
 func (d *Api) CreateNetwork() error {
-	response, err := d.client.NetworkCreate(d.ctx, config.CONFIG.Network, types.NetworkCreate{})
+	response, err := d.client.NetworkCreate(d.ctx, config.CONFIG.Network, network.CreateOptions{})
 	if err != nil {
 		return err
 	}

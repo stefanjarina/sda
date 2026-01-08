@@ -2,13 +2,14 @@ package docker
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/go-connections/nat"
 	"github.com/stefanjarina/sda/internal/config"
-	"io"
 )
 
 func (d *Api) Create(name string) error {

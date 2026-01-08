@@ -3,13 +3,14 @@ package docker
 import (
 	"bytes"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/go-units"
-	"github.com/stefanjarina/sda/internal/config"
 	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/go-units"
+	"github.com/stefanjarina/sda/internal/config"
 )
 
 func GetNamedVolumesForService(service *config.Service) []string {

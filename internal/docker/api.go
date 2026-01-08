@@ -5,14 +5,14 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
-	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/compose"
+	"github.com/docker/compose/v5/pkg/api"
+	"github.com/docker/compose/v5/pkg/compose"
 	"github.com/docker/docker/client"
 )
 
 type Api struct {
 	client        *client.Client
-	composeClient api.Service
+	composeClient api.Compose
 	ctx           context.Context
 }
 
@@ -24,7 +24,7 @@ func New() *Api {
 	}
 	defer cli.Close()
 
-	composeCli := initializeCompose()
+	composeCli, err := initializeCompose()
 
 	return &Api{
 		client:        cli,
@@ -33,7 +33,7 @@ func New() *Api {
 	}
 }
 
-func initializeCompose() api.Service {
+func initializeCompose() (api.Compose, error) {
 	dockerCli, _ := command.NewDockerCli()
 
 	dockerContext := "default"
