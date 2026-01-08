@@ -1,0 +1,92 @@
+version: "3"
+
+vars:
+  APP_NAME:
+    sh: '{{ if eq OS "windows" }}echo sda.exe{{ else }}echo sda{{ end }}'
+  PUBLISH_DIR: publish
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  build:
+    desc: Build application
+    cmds:
+      - echo "Building {{.APP_NAME}}..."
+      - go build -o {{.PUBLISH_DIR}}/{{.APP_NAME}} main.go
+
+  runb:
+    desc: Build and run application
+    cmds:
+      - task: build
+      - task: run
+
+  run:
+    desc: Run application
+    cmds:
+      - echo "Running {{.APP_NAME}}..."
+      - "{{.PUBLISH_DIR}}/{{.APP_NAME}} {{.CLI_ARGS}}"
+
+  build-all:
+    desc: Build for all platforms
+    cmds:
+      - echo "Building for 'windows/amd64'..."
+      - task: build-platform
+        vars:
+          GOOS: windows
+          GOARCH: amd64
+          OUTPUT: "{{.PUBLISH_DIR}}/sda-windows-x64.exe"
+      - echo "Building for 'windows/arm64'..."
+      - task: build-platform
+        vars:
+          GOOS: windows
+          GOARCH: arm64
+          OUTPUT: "{{.PUBLISH_DIR}}/sda-windows-arm64.exe"
+      - echo "Building for 'linux/amd64'..."
+      - task: build-platform
+        vars:
+          GOOS: linux
+          GOARCH: amd64
+          OUTPUT: "{{.PUBLISH_DIR}}/sda-linux-x64"
+      - echo "Building for 'linux/arm64'..."
+      - task: build-platform
+        vars:
+          GOOS: linux
+          GOARCH: arm64
+          OUTPUT: "{{.PUBLISH_DIR}}/sda-linux-arm64"
+      - echo "Building for 'darwin/amd64'..."
+      - task: build-platform
+        vars:
+          GOOS: darwin
+          GOARCH: amd64
+          OUTPUT: "{{.PUBLISH_DIR}}/sda-darwin-x64"
+      - echo "Building for 'darwin/arm64'..."
+      - task: build-platform
+        vars:
+          GOOS: darwin
+          GOARCH: arm64
+          OUTPUT: "{{.PUBLISH_DIR}}/sda-darwin-arm64"
+
+  build-platform:
+    internal: true
+    cmds:
+      - go build -o {{.OUTPUT}} main.go
+    env:
+      GOOS: "{{.GOOS}}"
+      GOARCH: "{{.GOARCH}}"
+
+  test:
+    desc: Test the application
+    cmds:
+      - echo "Testing..."
+      - go test -v ./...
+
+  clean:
+    desc: Clean the binary
+    cmds:
+      - echo "Cleaning..."
+      - rm -rf {{.PUBLISH_DIR}}
+      - go clean
