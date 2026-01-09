@@ -81,7 +81,7 @@ func (d *Api) fetchImageIfNotExists(name string, version string) error {
 		}
 		defer reader.Close()
 
-		fmt.Printf("Unable to find image '%s' locally. Pulling '%s' from '%s'...\n", nameAndVersion, version, name)
+		fmt.Printf("Pulling image '%s'...\n", nameAndVersion)
 		_, err = io.Copy(io.Discard, reader)
 		if err != nil {
 			return err

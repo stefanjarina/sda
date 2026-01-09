@@ -19,12 +19,14 @@ var startCmd = &cobra.Command{
 		if client.Exists(name) {
 			err := client.Start(name)
 			if err != nil {
-				utils.ErrorAndExit(fmt.Sprintf("Failed to start service '%s': %v\n", name, err))
+				utils.Error(fmt.Sprintf("Failed to start service '%s': %v", name, err))
+				utils.ErrorAndExit("")
 			}
 
-			fmt.Printf("Service '%s' started\n", name)
+			fmt.Printf("Started service '%s'\n", name)
 		} else {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
+			utils.Error(fmt.Sprintf("Service '%s' not found", name))
+			utils.ErrorAndExit("")
 		}
 	},
 }

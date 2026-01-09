@@ -20,12 +20,14 @@ var stopCmd = &cobra.Command{
 		if client.Exists(name) {
 			err := client.Stop(name)
 			if err != nil {
-				utils.ErrorAndExit(fmt.Sprintf("Failed to stop service '%s': %v", name, err))
+				utils.Error(fmt.Sprintf("Failed to stop service '%s': %v", name, err))
+				utils.ErrorAndExit("")
 			}
 
-			fmt.Printf("Service '%s' stopped\n", name)
+			fmt.Printf("Stopped service '%s'\n", name)
 		} else {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
+			utils.Error(fmt.Sprintf("Service '%s' not found", name))
+			utils.ErrorAndExit("")
 		}
 	},
 }

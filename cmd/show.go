@@ -33,7 +33,8 @@ var showCmd = &cobra.Command{
 			}
 
 		} else {
-			fmt.Printf("Service %s not found\n", name)
+			utils.Error(fmt.Sprintf("Service '%s' not found", name))
+			utils.ErrorAndExit("")
 		}
 	},
 }

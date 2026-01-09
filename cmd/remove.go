@@ -26,9 +26,9 @@ var removeCmd = &cobra.Command{
 
 		if client.Exists(name) {
 			if !yes {
-				confirmationMessage := fmt.Sprintf("Are you sure you want to remove '%s'? (Y/n): ", name)
+				confirmationMessage := fmt.Sprintf("Remove service '%s'? (Y/n): ", name)
 				if removeVolumes {
-					confirmationMessage = fmt.Sprintf("Are you sure you want to remove '%s' and all associated volumes? (Y/n): ", name)
+					confirmationMessage = fmt.Sprintf("Remove service '%s' and all volumes? (Y/n): ", name)
 				}
 
 				confirmedRemove := utils.Confirm(confirmationMessage)
@@ -40,7 +40,8 @@ var removeCmd = &cobra.Command{
 			fmt.Printf("Removing service '%s'...\n", name)
 			err := client.Remove(name)
 			if err != nil {
-				utils.ErrorAndExit(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
+				utils.Error(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
+				utils.ErrorAndExit("")
 			}
 
 			if removeVolumes {
@@ -54,7 +55,7 @@ var removeCmd = &cobra.Command{
 
 				var confirmedVolumeRemove bool
 				if !yes {
-					confirmedVolumeRemove = utils.Confirm(fmt.Sprintf("These volumes will be removed: '%s' Proceed? (Y/n): ", strings.Join(volumes, ", ")))
+					confirmedVolumeRemove = utils.Confirm(fmt.Sprintf("Volumes to remove: %s. Proceed? (Y/n): ", strings.Join(volumes, ", ")))
 				} else {
 					confirmedVolumeRemove = true
 				}
@@ -64,7 +65,8 @@ var removeCmd = &cobra.Command{
 			}
 
 		} else {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
+			utils.Error(fmt.Sprintf("Service '%s' not found", name))
+			utils.ErrorAndExit("")
 		}
 	},
 }

@@ -21,13 +21,13 @@ var createCmd = &cobra.Command{
 		serviceName := args[0]
 
 		if !config.CONFIG.ServiceExists(serviceName) {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is not in a list of available services\n", serviceName))
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is not in the list of available services", serviceName))
 		}
 
 		cli := docker.New()
 
 		if cli.Exists(serviceName) {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' already exists.\n", serviceName))
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' already exists", serviceName))
 		}
 
 		service := config.CONFIG.GetServiceByName(serviceName)
@@ -41,18 +41,18 @@ var createCmd = &cobra.Command{
 		if service.HasPassword {
 			if password != "" {
 				config.CONFIG.UpdatePassword(password)
-				fmt.Printf("Creating '%s' using custom password\n", service.OutputName)
+				fmt.Printf("Creating '%s' with custom password\n", service.OutputName)
 			} else {
-				fmt.Printf("Creating '%s' using the default password '%s'\n", service.OutputName, config.CONFIG.Password)
-				fmt.Printf("For custom password run again with: 'sda new %s -p <PASSWORD>'\n", serviceName)
-				fmt.Println("Password must be strong, otherwise docker fails to create container")
+				fmt.Printf("Creating '%s' with default password\n", service.OutputName)
+				fmt.Printf("For custom password run: 'sda create %s -p <PASSWORD>'\n", serviceName)
+				fmt.Println("Password must be strong, otherwise Docker fails to create container")
 			}
 		} else {
 			fmt.Printf("Creating '%s'\n", service.OutputName)
 		}
 
 		if !yes {
-			answer := utils.Confirm("Are you sure you want to proceed? (Y/n): ")
+			answer := utils.Confirm("Proceed? (Y/n): ")
 			if !answer {
 				os.Exit(0)
 			}
@@ -68,29 +68,31 @@ var createCmd = &cobra.Command{
 
 		if !cli.CheckNetwork() {
 			if !yes {
-				confirmedNetworkCreation := utils.Confirm(fmt.Sprintf("Network '%s' does not exist yet. Create it? (Y/n): ", config.CONFIG.Network))
+				confirmedNetworkCreation := utils.Confirm(fmt.Sprintf("Network '%s' does not exist. Create it? (Y/n): ", config.CONFIG.Network))
 				if !confirmedNetworkCreation {
-					utils.ErrorAndExit("Aborting, network must exist to create service")
+					utils.ErrorAndExit("Aborting: network must exist to create service")
 				}
 			}
 			_ = cli.CreateNetwork()
 		}
 
 		if err := cli.Create(serviceName); err != nil {
-			utils.ErrorAndExit(fmt.Sprintf("Error creating container: %v", err))
+			utils.Error(fmt.Sprintf("Failed to create container: %v", err))
+			utils.ErrorAndExit("")
 		}
 
-		fmt.Printf("Service '%s' created\n", service.OutputName)
+		fmt.Printf("Created service '%s'\n", service.OutputName)
 
 		if noStart {
 			os.Exit(0)
 		}
 
 		if err := cli.Start(serviceName); err != nil {
-			utils.ErrorAndExit(fmt.Sprintf("Error starting container: %v", err))
+			utils.Error(fmt.Sprintf("Failed to start container: %v", err))
+			utils.ErrorAndExit("")
 		}
 
-		fmt.Printf("Service '%s' started\n", service.OutputName)
+		fmt.Printf("Started service '%s'\n", service.OutputName)
 	},
 }
 

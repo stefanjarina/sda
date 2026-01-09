@@ -22,7 +22,7 @@ func (d *Api) CreateNetwork() error {
 		return err
 	}
 
-	fmt.Printf("Network '%s' created with ID: %s\n", config.CONFIG.Network, response.ID)
+	fmt.Printf("Created network '%s' with ID: %s\n", config.CONFIG.Network, response.ID)
 
 	return nil
 }

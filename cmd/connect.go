@@ -21,10 +21,12 @@ var connectCmd = &cobra.Command{
 			web, _ := cmd.Flags().GetBool("web")
 
 			if err := client.Connect(name, password, web); err != nil {
-				utils.ErrorAndExit(fmt.Sprintf("Failed to connect to %s: %v", name, err))
+				utils.Error(fmt.Sprintf("Failed to connect to service '%s': %v", name, err))
+				utils.ErrorAndExit("")
 			}
 		} else {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found\n", name))
+			utils.Error(fmt.Sprintf("Service '%s' not found", name))
+			utils.ErrorAndExit("")
 		}
 	},
 }
@@ -32,6 +34,6 @@ var connectCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(connectCmd)
 
-	connectCmd.Flags().BoolP("web", "w", false, "Help message for toggle")
+	connectCmd.Flags().BoolP("web", "w", false, "Open web browser instead of CLI")
 	connectCmd.Flags().StringP("password", "p", "", "Password to use")
 }
