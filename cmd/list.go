@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
@@ -32,6 +33,7 @@ var listCmd = &cobra.Command{
 		available, _ := cmd.Flags().GetBool("available")
 		created, _ := cmd.Flags().GetBool("created")
 		stopped, _ := cmd.Flags().GetBool("stopped")
+		compose, _ := cmd.Flags().GetBool("compose")
 		noColor, _ := cmd.Flags().GetBool("no-color")
 		format, _ := cmd.Flags().GetString("format")
 
@@ -39,7 +41,21 @@ var listCmd = &cobra.Command{
 
 		var services []docker.ServiceInfo
 
-		if available {
+		// Handle compose-only listing
+		if compose {
+			for _, svc := range config.CONFIG.Services {
+				if svc.IsComposeService() {
+					services = append(services, docker.ServiceInfo{
+						Name:       svc.Name,
+						Status:     "compose",
+						Image:      "compose",
+						Version:    "n/a",
+						Ports:      []string{},
+						StatusIcon: "📦",
+					})
+				}
+			}
+		} else if available {
 			services = client.ListAvailable()
 		} else if created {
 			services = client.ListCreated()
@@ -115,6 +131,7 @@ func init() {
 	listCmd.Flags().BoolP("created", "c", false, "List created apps")
 	listCmd.Flags().BoolP("running", "r", false, "List running apps (default)")
 	listCmd.Flags().BoolP("stopped", "s", false, "List stopped apps")
+	listCmd.Flags().Bool("compose", false, "List only compose services")
 	listCmd.Flags().Bool("no-color", false, "Disable color output")
 	listCmd.Flags().String("format", "table", "Output format: table, json")
 }

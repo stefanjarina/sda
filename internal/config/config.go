@@ -15,11 +15,17 @@ type Service struct {
 	Version           string `mapstructure:"defaultVersion"`
 	HasPassword       bool   `mapstructure:"hasPassword"`
 	CustomPassword    string `mapstructure:"customPassword"`
+	Compose           string `mapstructure:"compose"`
 	Docker            Docker `mapstructure:"docker"`
 	HasCliConnect     bool   `mapstructure:"hasCliConnect"`
 	CliConnectCommand string `mapstructure:"cliConnectCommand"`
 	HasWebConnect     bool   `mapstructure:"hasWebConnect"`
 	WebConnectUrl     string `mapstructure:"webConnectUrl"`
+}
+
+// IsComposeService returns true if the service is configured with a compose file
+func (s *Service) IsComposeService() bool {
+	return s.Compose != ""
 }
 
 type Docker struct {

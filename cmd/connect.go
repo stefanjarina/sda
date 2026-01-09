@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
+	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
@@ -15,6 +17,14 @@ var connectCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
+
+		// Check if it's a compose service
+		service := config.CONFIG.GetServiceByName(name)
+		if service != nil && service.IsComposeService() {
+			utils.Error(fmt.Sprintf("Service '%s' is a compose service", name))
+			utils.ErrorAndExit("Connect command is not yet supported for compose services")
+		}
+
 		client := docker.New()
 		if client.Exists(name) {
 			password, _ := cmd.Flags().GetString("password")

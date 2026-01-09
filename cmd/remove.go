@@ -5,11 +5,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
-
-	"github.com/spf13/cobra"
 )
 
 var removeCmd = &cobra.Command{
@@ -135,6 +134,32 @@ var removeCmd = &cobra.Command{
 		// Handle single service
 		name := args[0]
 
+		// Check if it's a compose service
+		service := config.CONFIG.GetServiceByName(name)
+		if service != nil && service.IsComposeService() {
+			// Handle as compose service
+			if !yes {
+				confirmationMessage := fmt.Sprintf("Remove service '%s'? (Y/n): ", name)
+				if removeVolumes {
+					confirmationMessage = fmt.Sprintf("Remove service '%s' and all volumes? (Y/n): ", name)
+				}
+
+				confirmedRemove := utils.Confirm(confirmationMessage)
+				if !confirmedRemove {
+					os.Exit(0)
+				}
+			}
+
+			fmt.Printf("Removing service '%s'...\n", name)
+			if err := client.ComposeDown(*service, removeVolumes); err != nil {
+				utils.Error(fmt.Sprintf("Failed to remove compose service '%s': %v", name, err))
+				utils.ErrorAndExit("")
+			}
+			fmt.Printf("Removed service '%s'\n", name)
+			return
+		}
+
+		// Handle as Docker service
 		if client.Exists(name) {
 			if !yes {
 				confirmationMessage := fmt.Sprintf("Remove service '%s'? (Y/n): ", name)

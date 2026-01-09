@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/spf13/cobra"
+	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
@@ -18,7 +19,22 @@ var logsCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
+
 		follow, _ := cmd.Flags().GetBool("follow")
+
+		// Check if it's a compose service
+		service := config.CONFIG.GetServiceByName(name)
+		if service != nil && service.IsComposeService() {
+			// Handle as compose service
+			client := docker.New()
+			if err := client.ComposeLogs(*service, follow); err != nil {
+				utils.Error(fmt.Sprintf("Failed to get logs: %v", err))
+				utils.ErrorAndExit("")
+			}
+			return
+		}
+
+		// Handle as Docker service
 		tail, _ := cmd.Flags().GetInt("tail")
 		timestamps, _ := cmd.Flags().GetBool("timestamps")
 

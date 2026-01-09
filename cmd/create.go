@@ -27,6 +27,49 @@ var createCmd = &cobra.Command{
 			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is not in the list of available services", serviceName))
 		}
 
+		service := config.CONFIG.GetServiceByName(serviceName)
+
+		// Handle compose services
+		if service != nil && service.IsComposeService() {
+			build, _ := cmd.Flags().GetBool("build")
+			recreate, _ := cmd.Flags().GetBool("recreate")
+			removeVolumes, _ := cmd.Flags().GetBool("volumes")
+			yes, _ := cmd.Flags().GetBool("yes")
+
+			client := docker.New()
+
+			// If recreate is requested, we need to bring down the existing stack first
+			if recreate {
+				if !yes {
+					confirmMsg := fmt.Sprintf("Recreate service '%s'? ", serviceName)
+					if removeVolumes {
+						confirmMsg += "This will remove all data. "
+					}
+					confirmMsg += "(Y/n): "
+
+					if !utils.Confirm(confirmMsg) {
+						os.Exit(0)
+					}
+				}
+
+				// Bring down the existing compose stack
+				_ = client.ComposeDown(*service, removeVolumes)
+			}
+
+			if err := client.ComposeUp(*service, build, true); err != nil {
+				utils.Error(fmt.Sprintf("Failed to create compose service '%s': %v", serviceName, err))
+				utils.ErrorAndExit("")
+			}
+			fmt.Printf("Created and started service '%s'\n", serviceName)
+			return
+		}
+
+		// Handle Docker services
+		build, _ := cmd.Flags().GetBool("build")
+		if build {
+			fmt.Println("Warning: --build flag is only applicable for compose services, ignoring")
+		}
+
 		recreate, _ := cmd.Flags().GetBool("recreate")
 		removeVolumes, _ := cmd.Flags().GetBool("volumes")
 		yes, _ := cmd.Flags().GetBool("yes")
@@ -114,12 +157,15 @@ var createCmd = &cobra.Command{
 			}
 		}
 
-		service := config.CONFIG.GetServiceByName(serviceName)
+		// service is already declared earlier in this function
+		service = config.CONFIG.GetServiceByName(serviceName)
 
-		networkName, _ := cmd.Flags().GetString("network")
-		password, _ := cmd.Flags().GetString("password")
-		version, _ := cmd.Flags().GetString("version")
-		noStart, _ := cmd.Flags().GetBool("no-start")
+		var networkName, password, version string
+		var noStart bool
+		networkName, _ = cmd.Flags().GetString("network")
+		password, _ = cmd.Flags().GetString("password")
+		version, _ = cmd.Flags().GetString("version")
+		noStart, _ = cmd.Flags().GetBool("no-start")
 
 		// Apply custom overrides to service config
 		if len(customPorts) > 0 {
@@ -228,6 +274,7 @@ func init() {
 	createCmd.Flags().Bool("no-start", false, "Do not start container after creation")
 	createCmd.Flags().Bool("recreate", false, "Remove existing container before creating")
 	createCmd.Flags().Bool("volumes", false, "Also remove volumes when recreating (requires --recreate)")
+	createCmd.Flags().Bool("build", false, "Build images before starting (compose services only)")
 	createCmd.Flags().StringSlice("port", nil, "Port mapping (HOST:CONTAINER, can be specified multiple times)")
 	createCmd.Flags().StringSlice("volume", nil, "Volume mapping (SOURCE:TARGET, can be specified multiple times)")
 	createCmd.Flags().StringSliceP("env", "e", nil, "Environment variable (KEY=VALUE, can be specified multiple times)")
