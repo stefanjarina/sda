@@ -2,7 +2,7 @@
 
 A cli application for simply creating various servers or apps in a docker containers
 
-This tool is not really meant to be robust, but rather a quick way to get a server up and running in a docker with 
+This tool is not really meant to be robust, but rather a quick way to get a server up and running in a docker with
 already set up volumes and ports as well as sitting in the same network as other services.
 
 It is meant only for development purposes as it does not provide any security or performance optimizations needed for use in production.
@@ -16,7 +16,6 @@ in `$HOME/.config/sda` directory.
 ## Disclaimers
 
 **This is PoC, a rewrite of a [powershell module](https://github.com/stefanjarina/SimpleDockerApps) I've used for a long time**
-
 **The API might still be changing**
 
 **This is also project written while learning language and because I use it often
@@ -108,7 +107,6 @@ sda connect ravendb --web
 | aerospike       | [Aerospike](https://aerospike.com/)                                  | [Docker HUB](https://hub.docker.com/_/aerospike)                |
 | portainer       | [Portainer](https://www.portainer.io/)                               | [Docker HUB](https://hub.docker.com/r/portainer/portainer)      |
 
-
 ## TODO
 
 - [ ] better output for list command
@@ -119,13 +117,13 @@ sda connect ravendb --web
 - [ ] Generate documentation
 - [ ] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
 - [X] Add GitHub Actions for CI/CD
-    - [X] Create GitHub release
+  - [X] Create GitHub release
 - [ ] Improve installation instructions
-    - [ ] create windows installer
-    - [ ] investigate scoop, chocolatey, winget
-    - [ ] create deb + rpm packages
-    - [ ] investigate snap
-    - [ ] investigate AUR
+  - [ ] create windows installer
+  - [ ] investigate scoop, chocolatey, winget
+  - [ ] create deb + rpm packages
+  - [ ] investigate snap
+  - [ ] investigate AUR
 - [ ] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
 - [ ] Add versioning autoincrement (via tags?)
 - [ ] Support calling docker compose maybe? (e.g. for more complex setups)
