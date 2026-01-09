@@ -4,6 +4,7 @@ vars:
   APP_NAME:
     sh: '{{ if eq OS "windows" }}echo sda.exe{{ else }}echo sda{{ end }}'
   PUBLISH_DIR: publish
+  DOCS_DIR: docs
   ACT_SHARED_VARS: --secret-file .act/my.secrets --artifact-server-path {{.TASK_DIR | toSlash }}/.act/artifacts/
 
 tasks:
@@ -95,10 +96,12 @@ tasks:
       - echo "Open coverage.html in browser"
 
   clean:
-    desc: Clean the binary
+    desc: Clean the artifacts
     cmds:
       - echo "Cleaning..."
       - rm -rf {{.PUBLISH_DIR}}
+      - rm -rf {{.DOCS_DIR}}
+      - rm -f coverage.out
       - go clean
 
   act:*:*:
@@ -118,3 +121,8 @@ tasks:
     desc: Creates new git tag with incremented version
     cmds:
       - bun scripts/increment_version.ts {{.CLI_ARGS}}
+
+  docs:
+    desc: Generate documentation
+    cmds:
+      - go run bin/gendocs.go {{.CLI_ARGS}}

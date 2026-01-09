@@ -34,6 +34,11 @@ func Execute() {
 	}
 }
 
+// GetRootCommand returns the root command for documentation generation
+func GetRootCommand() *cobra.Command {
+	return rootCmd
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 
