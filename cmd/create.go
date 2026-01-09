@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,6 +34,42 @@ var createCmd = &cobra.Command{
 		if removeVolumes && !recreate {
 			utils.Error("--volumes flag requires --recreate flag")
 			utils.ErrorAndExit("")
+		}
+
+		// Get custom flags
+		customPorts, _ := cmd.Flags().GetStringSlice("port")
+		customVolumes, _ := cmd.Flags().GetStringSlice("volume")
+		customEnvVars, _ := cmd.Flags().GetStringSlice("env")
+
+		// Validate custom flags
+		if len(customPorts) > 0 {
+			portPattern := regexp.MustCompile(`^(\d+):(\d+)$|^(\d+\.\d+\.\d+\.\d+):(\d+):(\d+)$`)
+			for _, port := range customPorts {
+				if !portPattern.MatchString(port) {
+					utils.Error(fmt.Sprintf("Invalid port format: %s (expected HOST:CONTAINER or IP:HOST:CONTAINER)", port))
+					utils.ErrorAndExit("")
+				}
+			}
+		}
+
+		if len(customVolumes) > 0 {
+			volumePattern := regexp.MustCompile(`^([^:]+):([^:]+)$`)
+			for _, volume := range customVolumes {
+				if !volumePattern.MatchString(volume) {
+					utils.Error(fmt.Sprintf("Invalid volume format: %s (expected SOURCE:TARGET)", volume))
+					utils.ErrorAndExit("")
+				}
+			}
+		}
+
+		if len(customEnvVars) > 0 {
+			envPattern := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=.*$`)
+			for _, env := range customEnvVars {
+				if !envPattern.MatchString(env) {
+					utils.Error(fmt.Sprintf("Invalid environment variable format: %s (expected KEY=VALUE)", env))
+					utils.ErrorAndExit("")
+				}
+			}
 		}
 
 		cli := docker.New()
@@ -82,6 +120,46 @@ var createCmd = &cobra.Command{
 		password, _ := cmd.Flags().GetString("password")
 		version, _ := cmd.Flags().GetString("version")
 		noStart, _ := cmd.Flags().GetBool("no-start")
+
+		// Apply custom overrides to service config
+		if len(customPorts) > 0 {
+			var portMappings []config.PortMapping
+			for _, port := range customPorts {
+				parts := strings.Split(port, ":")
+				if len(parts) == 2 {
+					// HOST:CONTAINER format
+					host, _ := strconv.Atoi(parts[0])
+					container, _ := strconv.Atoi(parts[1])
+					portMappings = append(portMappings, config.PortMapping{Host: host, Container: container})
+				} else if len(parts) == 3 {
+					// IP:HOST:CONTAINER format (ignore IP for now, just use HOST:CONTAINER)
+					host, _ := strconv.Atoi(parts[1])
+					container, _ := strconv.Atoi(parts[2])
+					portMappings = append(portMappings, config.PortMapping{Host: host, Container: container})
+				}
+			}
+			service.Docker.PortMappings = portMappings
+		}
+
+		if len(customVolumes) > 0 {
+			var volumes []config.Volume
+			for _, volume := range customVolumes {
+				parts := strings.Split(volume, ":")
+				source := parts[0]
+				target := parts[1]
+				isNamed := !strings.HasPrefix(source, "/") && !strings.HasPrefix(source, "\\") && !strings.Contains(source, ":\\")
+				volumes = append(volumes, config.Volume{
+					Source:  source,
+					Target:  target,
+					IsNamed: isNamed,
+				})
+			}
+			service.Docker.Volumes = volumes
+		}
+
+		if len(customEnvVars) > 0 {
+			service.Docker.EnvVars = customEnvVars
+		}
 
 		if service.HasPassword {
 			if password != "" {
@@ -150,4 +228,7 @@ func init() {
 	createCmd.Flags().Bool("no-start", false, "Do not start container after creation")
 	createCmd.Flags().Bool("recreate", false, "Remove existing container before creating")
 	createCmd.Flags().Bool("volumes", false, "Also remove volumes when recreating (requires --recreate)")
+	createCmd.Flags().StringSlice("port", nil, "Port mapping (HOST:CONTAINER, can be specified multiple times)")
+	createCmd.Flags().StringSlice("volume", nil, "Volume mapping (SOURCE:TARGET, can be specified multiple times)")
+	createCmd.Flags().StringSliceP("env", "e", nil, "Environment variable (KEY=VALUE, can be specified multiple times)")
 }
