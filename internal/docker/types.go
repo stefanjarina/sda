@@ -8,4 +8,5 @@ type ServiceInfo struct {
 	Version       string
 	Ports         []string
 	Status        string
+	StatusIcon    string
 }

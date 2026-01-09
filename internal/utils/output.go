@@ -3,8 +3,9 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
+
+	"github.com/spf13/viper"
 )
 
 func Message(obj any) {
@@ -37,12 +38,12 @@ func outputJSON(obj any) {
 }
 
 func outputText(obj any) {
-	switch obj.(type) {
+	switch obj := obj.(type) {
 	case []string:
-		for _, line := range obj.([]string) {
+		for _, line := range obj {
 			fmt.Println(line)
 		}
 	case string:
-		fmt.Println(obj.(string))
+		fmt.Println(obj)
 	}
 }

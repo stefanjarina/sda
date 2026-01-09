@@ -2,15 +2,27 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/stefanjarina/sda/internal/docker"
-	"strings"
 
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/stefanjarina/sda/internal/docker"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
-type printFn func(docker.ServiceInfo)
+func cleanStatus(rawStatus string) string {
+	if rawStatus == "" {
+		return "available"
+	}
+	if len(rawStatus) >= 2 && (rawStatus[:2] == "Up" || rawStatus[:2] == "up") {
+		return "running"
+	}
+	if len(rawStatus) >= 6 && rawStatus[:6] == "Exited" {
+		return "stopped"
+	}
+	return rawStatus
+}
 
-// listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List services (defaults to running)",
@@ -19,29 +31,80 @@ var listCmd = &cobra.Command{
 		available, _ := cmd.Flags().GetBool("available")
 		created, _ := cmd.Flags().GetBool("created")
 		stopped, _ := cmd.Flags().GetBool("stopped")
+		noColor, _ := cmd.Flags().GetBool("no-color")
+		format, _ := cmd.Flags().GetString("format")
 
 		client := docker.New()
 
+		var services []docker.ServiceInfo
+
 		if available {
-			services := client.ListAvailable()
-			printServices("Available services:", services, printListInfo)
+			services = client.ListAvailable()
+		} else if created {
+			services = client.ListCreated()
+		} else if stopped {
+			services = client.ListStopped()
+		} else {
+			services = client.ListRunning()
+		}
+
+		if viper.GetBool("json") || format == "json" {
+			utils.Message(services)
 			return
 		}
 
-		if created {
-			services := client.ListCreated()
-			printServices("Created services:", services, printServiceInfo)
+		if len(services) == 0 {
+			fmt.Println("No services found.")
 			return
 		}
 
-		if stopped {
-			services := client.ListStopped()
-			printServices("Stopped services:", services, printServiceInfo)
-			return
+		columns := []table.Column{
+			{Title: "NAME", Width: 15},
+			{Title: "STATUS", Width: 12},
+			{Title: "VERSION", Width: 12},
+			{Title: "CONTAINER", Width: 20},
+			{Title: "PORTS", Width: 25},
 		}
 
-		services := client.ListRunning()
-		printServices("Running services:", services, printServiceInfo)
+		rows := make([]table.Row, len(services))
+		for i, s := range services {
+			ports := ""
+			if len(s.Ports) > 0 {
+				ports = s.Ports[0]
+				for j := 1; j < len(s.Ports); j++ {
+					ports += ", " + s.Ports[j]
+				}
+			}
+
+			statusText := cleanStatus(s.Status)
+			statusCell := s.StatusIcon + " " + statusText
+			if !noColor {
+				switch statusText {
+				case "running":
+					statusCell = "\033[32m" + statusCell + "\033[0m"
+				case "stopped":
+					statusCell = "\033[31m" + statusCell + "\033[0m"
+				default:
+					statusCell = "\033[33m" + statusCell + "\033[0m"
+				}
+			}
+
+			rows[i] = table.Row{
+				s.Name,
+				statusCell,
+				s.Version,
+				s.ContainerName,
+				ports,
+			}
+		}
+
+		t := table.New(
+			table.WithColumns(columns),
+			table.WithRows(rows),
+			table.WithHeight(len(rows)),
+		)
+
+		fmt.Println(t.View())
 	},
 }
 
@@ -52,25 +115,6 @@ func init() {
 	listCmd.Flags().BoolP("created", "c", false, "List created apps")
 	listCmd.Flags().BoolP("running", "r", false, "List running apps (default)")
 	listCmd.Flags().BoolP("stopped", "s", false, "List stopped apps")
-}
-
-func printServices(title string, services []docker.ServiceInfo, fn printFn) {
-	if len(services) != 0 {
-		fmt.Println(title)
-
-		for _, service := range services {
-			fn(service)
-		}
-	} else {
-		fmt.Println("Nothing to show.")
-	}
-}
-
-func printServiceInfo(service docker.ServiceInfo) {
-	ports := strings.Join(service.Ports, ", ")
-	fmt.Printf("%s\t%s\t\t(Image: '%s', Ports: [%s])\n", service.Name, service.Status, service.Image, ports)
-}
-
-func printListInfo(service docker.ServiceInfo) {
-	fmt.Printf("%s - '%s:%s'\n", service.Name, service.Image, service.Version)
+	listCmd.Flags().Bool("no-color", false, "Disable color output")
+	listCmd.Flags().String("format", "table", "Output format: table, json")
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/stefanjarina/sda/internal/config"
@@ -24,10 +25,55 @@ var createCmd = &cobra.Command{
 			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is not in the list of available services", serviceName))
 		}
 
+		recreate, _ := cmd.Flags().GetBool("recreate")
+		removeVolumes, _ := cmd.Flags().GetBool("volumes")
+		yes, _ := cmd.Flags().GetBool("yes")
+
+		if removeVolumes && !recreate {
+			utils.Error("--volumes flag requires --recreate flag")
+			utils.ErrorAndExit("")
+		}
+
 		cli := docker.New()
 
 		if cli.Exists(serviceName) {
-			utils.ErrorAndExit(fmt.Sprintf("Service '%s' already exists", serviceName))
+			if recreate {
+				if removeVolumes {
+					fmt.Printf("Recreating service '%s' and removing volumes...\n", serviceName)
+				} else {
+					fmt.Printf("Recreating service '%s' (volumes will be preserved)...\n", serviceName)
+				}
+
+				if !yes {
+					confirmMsg := fmt.Sprintf("Recreate service '%s'? ", serviceName)
+					if removeVolumes {
+						confirmMsg += "This will remove all data. "
+					}
+					confirmMsg += "(Y/n): "
+
+					if !utils.Confirm(confirmMsg) {
+						os.Exit(0)
+					}
+				}
+
+				fmt.Printf("Removing existing service '%s'...\n", serviceName)
+				err := cli.Remove(serviceName)
+				if err != nil {
+					utils.Error(fmt.Sprintf("Failed to remove existing service: %v", err))
+					utils.ErrorAndExit("")
+				}
+
+				if removeVolumes {
+					service := config.CONFIG.GetServiceByName(serviceName)
+					volumes := docker.GetNamedVolumesForService(service)
+					if len(volumes) > 0 {
+						fmt.Printf("Removing volumes: %s...\n", strings.Join(volumes, ", "))
+						cli.RemoveVolumes(volumes)
+					}
+				}
+			} else {
+				utils.ErrorAndExit(fmt.Sprintf("Service '%s' already exists. Use --recreate to remove and recreate.", serviceName))
+			}
 		}
 
 		service := config.CONFIG.GetServiceByName(serviceName)
@@ -35,7 +81,6 @@ var createCmd = &cobra.Command{
 		networkName, _ := cmd.Flags().GetString("network")
 		password, _ := cmd.Flags().GetString("password")
 		version, _ := cmd.Flags().GetString("version")
-		yes, _ := cmd.Flags().GetBool("yes")
 		noStart, _ := cmd.Flags().GetBool("no-start")
 
 		if service.HasPassword {
@@ -103,4 +148,6 @@ func init() {
 	createCmd.Flags().StringP("password", "p", "", "Password")
 	createCmd.Flags().String("version", "", "Version")
 	createCmd.Flags().Bool("no-start", false, "Do not start container after creation")
+	createCmd.Flags().Bool("recreate", false, "Remove existing container before creating")
+	createCmd.Flags().Bool("volumes", false, "Also remove volumes when recreating (requires --recreate)")
 }

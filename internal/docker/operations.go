@@ -2,6 +2,8 @@ package docker
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -40,6 +42,12 @@ func (d *Api) ListCreated() []ServiceInfo {
 	var services []ServiceInfo
 
 	for _, s := range result {
+		statusIcon := "○"
+		if strings.HasPrefix(s.Status, "Up") {
+			statusIcon = "●"
+		} else if strings.HasPrefix(s.Status, "Exited") {
+			statusIcon = "✗"
+		}
 		serviceInfo := &ServiceInfo{
 			Name:          getNameFromContainerName(s.Names[0]),
 			ContainerName: s.Names[0][1:],
@@ -48,6 +56,7 @@ func (d *Api) ListCreated() []ServiceInfo {
 			Version:       getVersionFromImageName(s.Image),
 			Ports:         getPortsFromContainer(s.Ports),
 			Status:        s.Status,
+			StatusIcon:    statusIcon,
 		}
 		services = append(services, *serviceInfo)
 	}
@@ -76,6 +85,7 @@ func (d *Api) ListRunning() []ServiceInfo {
 			Version:       getVersionFromImageName(s.Image),
 			Ports:         getPortsFromContainer(s.Ports),
 			Status:        s.Status,
+			StatusIcon:    "●",
 		}
 		services = append(services, *serviceInfo)
 	}
@@ -104,6 +114,7 @@ func (d *Api) ListStopped() []ServiceInfo {
 			Version:       getVersionFromImageName(s.Image),
 			Ports:         getPortsFromContainer(s.Ports),
 			Status:        s.Status,
+			StatusIcon:    "✗",
 		}
 		services = append(services, *serviceInfo)
 	}
@@ -212,4 +223,9 @@ func handleCliConnect(service *config.Service, customPassword, name string) erro
 	}
 
 	return nil
+}
+
+func (d *Api) GetContainerLogs(name string, options container.LogsOptions) (io.ReadCloser, error) {
+	containerName := fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)
+	return d.client.ContainerLogs(d.ctx, containerName, options)
 }
