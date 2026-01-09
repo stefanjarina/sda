@@ -109,13 +109,13 @@ sda connect ravendb --web
 
 ## TODO
 
-- [ ] better output for list command
-- [ ] add logs command
-- [ ] add --recreate flag to create command
-- [ ] add tests
-- [ ] support bulk actions (stop/start all, etc.)
-- [ ] Generate documentation
-- [ ] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
+- [x] better output for list command
+- [x] add logs command
+- [x] add --recreate flag to create command
+- [x] add tests
+- [x] support bulk actions (stop/start all, etc.)
+- [x] Generate documentation
+- [x] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
 - [X] Add GitHub Actions for CI/CD
   - [X] Create GitHub release
 - [ ] Improve installation instructions
@@ -124,9 +124,9 @@ sda connect ravendb --web
   - [ ] create deb + rpm packages
   - [ ] investigate snap
   - [ ] investigate AUR
-- [ ] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
-- [ ] Add versioning autoincrement (via tags?)
-- [ ] Support calling docker compose maybe? (e.g. for more complex setups)
+- [x] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
+- [x] Add versioning autoincrement (via tags?)
+- [x] Support calling docker compose maybe? (e.g. for more complex setups)
 
 ### Ultimate TODO for services
 
