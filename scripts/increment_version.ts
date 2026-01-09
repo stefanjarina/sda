@@ -49,5 +49,5 @@ if (!values.yes) {
   }
 }
 
-//await $`git tag ${newVersion}`;
+await $`git tag ${newVersion}`;
 console.log(`✓ Created tag ${newVersion}`);
