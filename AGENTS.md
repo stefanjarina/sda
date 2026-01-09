@@ -29,10 +29,13 @@ The tool is intended for local development to avoid repetitive `docker run` comm
 ## Architecture
 
 ### Entry Point
+
 * `main.go` calls `cmd.Execute()`
 
 ### CLI Commands
+
 Defined in `cmd/` directory:
+
 * `root.go` - Root command, config initialization, version info
 * `create.go` - Create/start services (acts as `docker create` + `docker compose up`)
 * `start.go` - Start services (acts as `docker start` + `docker compose start`)
@@ -44,7 +47,9 @@ Defined in `cmd/` directory:
 * `connect.go` - Connect to services (Docker only)
 
 ### Configuration Layer
+
 Located in `internal/config/`:
+
 * **Core Structs:** `Config`, `Service`, `Docker`
 * **Service Types:** Services can be either Docker containers OR Compose stacks
   * `Service.Compose` field determines type
@@ -53,7 +58,9 @@ Located in `internal/config/`:
 * **Default Config:** Embedded in `cmd/defaultConfig.yaml`
 
 ### Docker Integration
+
 Located in `internal/docker/`:
+
 * `api.go` - Docker and Compose client initialization
 * `create.go` - Container creation logic
 * `compose.go` - **NEW:** Compose operations using Docker Compose SDK v5
@@ -70,14 +77,18 @@ Located in `internal/docker/`:
 * `types.go` - Type definitions (ServiceInfo struct)
 
 ### Utilities
+
 Located in `internal/utils/`:
+
 * `output.go` - Message, Error, and JSON output functions
 * `prompts.go` - Confirmation prompts
 * `commands.go` - Command execution helpers (RunInteractive, OpenURL)
 * `customFlags.go` - Custom flag types (Enum)
 
 ### Build Tools
+
 Located in `bin/`:
+
 * `gendocs.go` - Standalone documentation generator
   * Uses Cobra's doc generation
   * Supports `-output` flag
@@ -85,7 +96,9 @@ Located in `bin/`:
   * NOT included in shipped binary
 
 ### Testing
+
 Located in `test/` and `internal/*/`:
+
 * Config tests: 94.4% coverage
 * Docker transformations tests: 100% coverage on core functions
 * Utils tests: Custom flag validation
@@ -123,6 +136,7 @@ The project uses a `Taskfile.yaml` for common tasks:
 ## Configuration
 
 ### Config File Location
+
 `$HOME/.config/sda/sda.yaml`
 
 ### Config Structure
@@ -162,19 +176,21 @@ services:
 ### Service Types
 
 **Docker Service:**
-- Has `docker` section with image, ports, volumes, env vars
-- Managed as individual containers with `sda-` prefix
-- Full customization via CLI flags
+
+* Has `docker` section with image, ports, volumes, env vars
+* Managed as individual containers with `sda-` prefix
+* Full customization via CLI flags
 
 **Compose Service:**
-- Has `compose` field pointing to docker-compose file
-- Managed as compose stack using service name as project name
-- Path can be:
+
+* Has `compose` field pointing to docker-compose file
+* Managed as compose stack using service name as project name
+* Path can be:
   * Relative to `~/.config/sda/` (e.g., `./myapp/docker-compose.yml`)
   * Absolute path (e.g., `/home/user/projects/app/docker-compose.yml`)
   * Directory (searches for `docker-compose.yaml` or `docker-compose.yml`)
   * File path (used directly)
-- **Validation:** Folder containing compose file MUST match service name
+* **Validation:** Folder containing compose file MUST match service name
 
 ### Config Initialization
 
@@ -186,6 +202,7 @@ services:
 ### Unified Commands (Work with Both Service Types)
 
 **create** - Create and start service
+
 ```bash
 sda create [service] [flags]
   --build           # Build images before starting (compose only)
@@ -201,16 +218,19 @@ sda create [service] [flags]
 ```
 
 **start** - Start existing service
+
 ```bash
 sda start [service|--all|--running|--stopped]
 ```
 
 **stop** - Stop running service
+
 ```bash
 sda stop [service|--all|--running|--stopped]
 ```
 
 **remove** - Remove service
+
 ```bash
 sda remove [service|--all|--running|--stopped]
   --volumes         # Also remove volumes
@@ -218,6 +238,7 @@ sda remove [service|--all|--running|--stopped]
 ```
 
 **logs** - View service logs
+
 ```bash
 sda logs [service]
   -f, --follow      # Follow log output
@@ -226,6 +247,7 @@ sda logs [service]
 ```
 
 **list** - List services
+
 ```bash
 sda list [flags]
   -a, --available   # List all available services
@@ -240,11 +262,13 @@ sda list [flags]
 ### Docker-Only Commands
 
 **show** - Show service information
+
 ```bash
 sda show [service]
 ```
 
 **connect** - Connect to service
+
 ```bash
 sda connect [service]
   --password PASS   # Override password
@@ -261,7 +285,7 @@ sda connect [service]
 
 ### Project Structure
 
-```
+```text
 sda/
 ├── cmd/                    # CLI commands
 │   ├── root.go            # Root command, config init
@@ -307,6 +331,7 @@ sda/
 ### Code Patterns
 
 **Service Type Detection:**
+
 ```go
 service := config.CONFIG.GetServiceByName(name)
 if service != nil && service.IsComposeService() {
@@ -319,6 +344,7 @@ if service != nil && service.IsComposeService() {
 ```
 
 **Error Handling:**
+
 ```go
 if err != nil {
     utils.Error(fmt.Sprintf("Error message: %v", err))
@@ -327,6 +353,7 @@ if err != nil {
 ```
 
 **Confirmation Prompts:**
+
 ```go
 if !yes {
     if !utils.Confirm("Are you sure? (Y/n): ") {
@@ -336,6 +363,7 @@ if !yes {
 ```
 
 **Flag Binding:**
+
 ```go
 cmd.Flags().BoolP("follow", "f", false, "Follow log output")
 follow, _ := cmd.Flags().GetBool("follow")
@@ -363,25 +391,30 @@ follow, _ := cmd.Flags().GetBool("follow")
 ## Completed Features (Phases 1-5)
 
 ### Phase 1: Foundation & Polish
+
 * ✅ Test infrastructure (94.4% config coverage)
 * ✅ Code cleanup and consistency
 
 ### Phase 2: User-Facing Improvements
+
 * ✅ Enhanced list output (colors, status icons, table formatting)
 * ✅ `--recreate` flag for create command
 * ✅ `logs` command with follow, tail, timestamps
 
 ### Phase 3: Bulk Operations & Customization
+
 * ✅ Bulk actions (`--all`, `--running`, `--stopped`)
 * ✅ CLI customization flags (`--port`, `--volume`, `--env`, `--network`)
 
 ### Phase 4: Documentation
+
 * ✅ Standalone `bin/gendocs.go` tool
 * ✅ Auto-generated man pages and CLI reference
 * ✅ `task docs` command
 * ✅ Not included in shipped binary
 
 ### Phase 5: Docker Compose Support
+
 * ✅ Unified interface for Docker and Compose services
 * ✅ Compose SDK v5 integration
 * ✅ Path resolution (relative/absolute, file/directory)
@@ -393,13 +426,16 @@ follow, _ := cmd.Flags().GetBool("follow")
 ## Current State
 
 ### Version
+
 **0.0.10** (defined in `cmd/root.go` via `GitTag`)
 
 ### Container Naming
+
 * **Docker services:** `{prefix}-{serviceName}` (default prefix: `sda-`)
 * **Compose services:** Managed by compose using service name as project name
 
 ### Supported Services (Default Config)
+
 * PostgreSQL, MySQL, MSSQL, MariaDB, MongoDB, SurrealDB
 * Redis, Memcached, Elasticsearch, RabbitMQ, Kafka
 * Compose services (user-defined)
@@ -407,12 +443,14 @@ follow, _ := cmd.Flags().GetBool("follow")
 ### Service Lifecycle
 
 **Docker Service:**
+
 1. `create` → creates and starts container
 2. `stop` → stops container (preserves state)
 3. `start` → restarts stopped container
 4. `remove` → removes container (optionally volumes)
 
 **Compose Service:**
+
 1. `create` → runs `docker compose up` (creates and starts)
 2. `stop` → runs `docker compose stop` (preserves state)
 3. `start` → runs `docker compose start` (restarts)
@@ -421,11 +459,13 @@ follow, _ := cmd.Flags().GetBool("follow")
 ## Pending Work
 
 ### Phase 6: Distribution & Installation (NEXT)
+
 * Package managers: Scoop, Chocolatey, WinGet, Homebrew, apt, yum, AUR, snap
 * Installers and automation
 * See `_dev/NEXT.md` for detailed implementation plan
 
 ### Phase 7: Service-Specific Fixes
+
 * Elasticsearch CLI connect command fix
 
 ## Important Implementation Details
@@ -433,24 +473,28 @@ follow, _ := cmd.Flags().GetBool("follow")
 ### Compose Path Resolution
 
 **Relative Paths:**
+
 ```yaml
 compose: ./myapp/docker-compose.yml
 # Resolves to: ~/.config/sda/myapp/docker-compose.yml
 ```
 
 **Absolute Paths:**
+
 ```yaml
 compose: /home/user/projects/myapp/docker-compose.yml
 # Used as-is
 ```
 
 **Directory Paths:**
+
 ```yaml
 compose: ./myapp
 # Searches for: docker-compose.yaml or docker-compose.yml in ~/.config/sda/myapp/
 ```
 
 **Validation:**
+
 * Folder containing compose file MUST match service name
 * Example: Service `myapp` requires folder `myapp/docker-compose.yml` ✓
 * Example: Service `myapp` with `different/docker-compose.yml` ✗ (fails)
@@ -477,24 +521,29 @@ if service != nil && service.IsComposeService() {
 ### Flag Behavior
 
 **Flags that work with both:**
+
 * `--recreate` (create command)
 * `--volumes` (remove command)
 * `--yes` (all commands)
 
 **Compose-only flags:**
+
 * `--build` (create command) - Shows warning if used with Docker service
 
 **Docker-only flags:**
+
 * `--port`, `--volume`, `--env`, `--network`, `--password`, `--version` (create command)
 * Ignored for compose services
 
 ### Output Format
 
 **Commands support two output modes:**
+
 1. **Table** (default) - Human-readable with colors and icons
 2. **JSON** (via `--json`) - Machine-readable for scripting
 
 **Status Icons:**
+
 * ✓ (green) - Running
 * ✗ (red) - Stopped
 * ● (yellow) - Created
@@ -542,6 +591,7 @@ if service != nil && service.IsComposeService() {
 ## Dependencies
 
 ### Runtime Dependencies
+
 * `github.com/spf13/cobra` - CLI framework
 * `github.com/spf13/viper` - Configuration management
 * `github.com/docker/docker` - Docker SDK
@@ -551,10 +601,12 @@ if service != nil && service.IsComposeService() {
 * `github.com/docker/go-units` - Docker units parsing
 
 ### Dev Dependencies
+
 * `github.com/spf13/cobra/doc` - Documentation generation
 * Standard testing packages
 
 ### Notes
+
 * No testing framework dependencies (uses standard `testing` package)
 * Compose SDK v5 is primary dependency for compose operations
 * All dependencies managed via `go.mod`
@@ -573,12 +625,14 @@ if service != nil && service.IsComposeService() {
 ### Important Patterns
 
 **Container Prefix:**
+
 ```go
 // In internal/docker/create.go
 containerName := fmt.Sprintf("%s-%s", config.CONFIG.Prefix, serviceName)
 ```
 
 **Service Lookup:**
+
 ```go
 service := config.CONFIG.GetServiceByName(name)
 if service == nil {
@@ -587,6 +641,7 @@ if service == nil {
 ```
 
 **Compose Project Name:**
+
 ```go
 // Service name is used as compose project name
 project, err := composeService.LoadProject(ctx, api.ProjectLoadOptions{
