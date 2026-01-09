@@ -114,7 +114,7 @@ tasks:
     cmds:
       - act push -W .github/workflows/ {{.ACT_SHARED_VARS}} {{.CLI_ARGS}}
 
-  increment_version:
+  increment:
     desc: Creates new git tag with incremented version
     cmds:
       - bun scripts/increment_version.ts {{.CLI_ARGS}}
