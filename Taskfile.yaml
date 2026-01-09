@@ -4,6 +4,7 @@ vars:
   APP_NAME:
     sh: '{{ if eq OS "windows" }}echo sda.exe{{ else }}echo sda{{ end }}'
   PUBLISH_DIR: publish
+  ACT_SHARED_VARS: --secret-file .act/my.secrets --artifact-server-path {{.TASK_DIR | toSlash }}/.act/artifacts/
 
 tasks:
   default:
@@ -90,3 +91,16 @@ tasks:
       - echo "Cleaning..."
       - rm -rf {{.PUBLISH_DIR}}
       - go clean
+
+  act:*:*:
+    desc: Run Act with preconfigured secrets file
+    vars:
+      MODE: '{{index .MATCH 0}}'
+      FILE: '{{index .MATCH 1}}'
+    cmds:
+      - act {{.MODE}} -W .github/workflows/{{.FILE}}.yml {{.ACT_SHARED_VARS}} {{.CLI_ARGS}}
+
+  act_all:
+    desc: Run Act with preconfigured secrets file
+    cmds:
+      - act push -W .github/workflows/ {{.ACT_SHARED_VARS}} {{.CLI_ARGS}}
