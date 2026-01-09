@@ -8,19 +8,26 @@ It is intended for local development to avoid repetitive `docker run` commands a
 
 ## Key Technologies
 
-* **Language:** Go (1.22+)
+* **Language:** Go (1.25.0)
 * **CLI Framework:** [Cobra](https://github.com/spf13/cobra)
 * **Configuration:** [Viper](https://github.com/spf13/viper)
 * **Container Runtime:** [Docker SDK for Go](https://github.com/docker/docker/client)
-* **Task Runner:** [Just](https://github.com/casey/just)
+* **Task Runner:** [Task](https://taskfile.dev/)
+* **Interactive Prompts:** [Promptkit](https://github.com/erikgeiser/promptkit)
 
 ## Architecture
 
 * **Entry Point:** `main.go` calls `cmd.Execute()`.
-* **CLI Commands:** Defined in `cmd/` (e.g., `create.go`, `list.go`, `root.go`).
+* **CLI Commands:** Defined in `cmd/` (e.g., `create.go`, `list.go`, `start.go`, `stop.go`, `remove.go`, `show.go`, `connect.go`, `root.go`).
 * **Configuration:** Managed in `internal/config/`. The core structs are `Config`, `Service`, and `Docker`, mapping to the `sda.yaml` file.
-* **Docker Logic:** Encapsulated in `internal/docker/`. Handles API interaction, container creation, and network management.
-* **Utilities:** `internal/utils/` contains helper functions for output, prompts, and common logic.
+* **Docker Logic:** Encapsulated in `internal/docker/` with modular files:
+  * `api.go` - Docker client initialization
+  * `create.go` - Container creation logic
+  * `operations.go` - List, Start, Stop, Remove, Connect, GetInfo operations
+  * `network.go` - Network management
+  * `transformations.go` - Helper transformations (ports, versions, etc.)
+  * `types.go` - Type definitions (ServiceInfo struct)
+* **Utilities:** `internal/utils/` contains helper functions for output, prompts, command execution, and custom flags.
 
 ## Build and Run
 
@@ -28,20 +35,22 @@ It is intended for local development to avoid repetitive `docker run` commands a
 
 * Go 1.22 or higher
 * Docker (running)
-* `just` (optional, for convenience)
+* `task` (optional, for convenience)
 
-### Commands (using `just`)
+### Commands (using `task`)
 
-The project uses a `justfile` for common tasks.
+The project uses a `Taskfile.yaml` for common tasks.
 
-* **Build:** `just build` (outputs to `target/sda` or `target/sda.exe`)
-* **Test:** `just test` (runs `go test ./...`)
-* **Build All Platforms:** `just build-all` (cross-compiles for Linux/Windows AMD64/ARM64)
-* **Clean:** `just clean`
+* **Build:** `task build` (outputs to `publish/sda` or `publish/sda.exe`)
+* **Run:** `task run [command]` (runs the built binary)
+* **Build and Run:** `task runb` (builds then runs)
+* **Test:** `task test` (runs `go test -v ./...`)
+* **Build All Platforms:** `task build-all` (cross-compiles for Windows/Linux/Darwin AMD64/ARM64)
+* **Clean:** `task clean`
 
 ### Commands (standard Go)
 
-* **Build:** `go build -o target/sda main.go`
+* **Build:** `go build -o publish/sda main.go`
 * **Run:** `go run main.go [command]`
 
 ## Configuration
@@ -57,3 +66,6 @@ The application uses a configuration file typically located at `$HOME/.config/sd
 * **Formatting:** Standard Go formatting (`gofmt`).
 * **Error Handling:** Custom `utils.ErrorAndExit` is often used for CLI-level fatal errors.
 * **Dependencies:** Managed via `go.mod`.
+* **Output Format:** Commands support JSON output via `--json` flag (using Viper binding).
+* **Container Naming:** Services use a configurable prefix (default: `sda-`) for container naming.
+* **Version:** Current version is 0.0.10 (defined in `cmd/root.go`).
