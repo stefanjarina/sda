@@ -60,7 +60,11 @@ var listCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tSTATUS\tVERSION\tCONTAINER\tPORTS")
+		if available {
+			fmt.Fprintln(w, "NAME\tVERSION\tIMAGE")
+		} else {
+			fmt.Fprintln(w, "NAME\tSTATUS\tVERSION\tCONTAINER\tPORTS")
+		}
 
 		for _, s := range services {
 			ports := ""
@@ -85,12 +89,19 @@ var listCmd = &cobra.Command{
 				}
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-				s.Name,
-				statusCell,
-				s.Version,
-				s.ContainerName,
-				ports)
+			if available {
+				fmt.Fprintf(w, "%s\t%s\t%s\n",
+					s.Name,
+					s.Version,
+					s.Image)
+			} else {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+					s.Name,
+					statusCell,
+					s.Version,
+					s.ContainerName,
+					ports)
+			}
 		}
 		w.Flush()
 	},
