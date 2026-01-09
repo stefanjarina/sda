@@ -113,3 +113,8 @@ tasks:
     desc: Run Act with preconfigured secrets file
     cmds:
       - act push -W .github/workflows/ {{.ACT_SHARED_VARS}} {{.CLI_ARGS}}
+
+  increment_version:
+    desc: Creates new git tag with incremented version
+    cmds:
+      - bun scripts/increment_version.ts {{.CLI_ARGS}}
