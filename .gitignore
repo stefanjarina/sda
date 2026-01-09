@@ -5,7 +5,7 @@
 .idea/
 sda
 sda.exe
-target/
+publish/
 .act/
 
 #################

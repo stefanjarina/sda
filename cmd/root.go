@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+var GitTag string
 var cfgFile string
 
 //go:embed defaultConfig.yaml
@@ -21,7 +22,7 @@ var defaultCfgFile []byte
 
 var rootCmd = &cobra.Command{
 	Use:     "sda",
-	Version: "0.0.10",
+	Version: GitTag,
 	Short:   "Simple Docker Apps",
 	Long:    `Simple Docker Apps`,
 }

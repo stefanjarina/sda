@@ -74,7 +74,7 @@ tasks:
   build-platform:
     internal: true
     cmds:
-      - go build -o {{.OUTPUT}} main.go
+      - go build -ldflags "-s -w -X github.com/stefanjarina/sda/cmd.GitTag=$GITHUB_REF_NAME" -o {{.OUTPUT}} main.go
     env:
       GOOS: "{{.GOOS}}"
       GOARCH: "{{.GOARCH}}"
