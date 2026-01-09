@@ -1,0 +1,4 @@
+defaultNetwork: sda-network
+defaultPassword: password
+prefix: sda-
+services: []

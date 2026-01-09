@@ -80,10 +80,19 @@ tasks:
       GOARCH: "{{.GOARCH}}"
 
   test:
-    desc: Test the application
+    desc: Test the application with coverage
     cmds:
       - echo "Testing..."
-      - go test -v ./...
+      - go test -v -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out
+      - 'echo "Coverage report: coverage.out"'
+
+  test-coverage:
+    desc: Generate HTML coverage report
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Open coverage.html in browser"
 
   clean:
     desc: Clean the binary

@@ -3,10 +3,11 @@
 ##############
 
 .idea/
+.act/
+_dev/
+publish/
 sda
 sda.exe
-publish/
-.act/
 
 #################
 ### GENERATED ###

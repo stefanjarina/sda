@@ -1,0 +1,18 @@
+defaultNetwork: sda-network
+defaultPassword: mysecretpassword
+prefix: sda-
+services:
+  - name: postgres
+    outputName: PostgreSQL
+    defaultVersion: "15"
+    hasPassword: true
+    docker:
+      imageName: postgres:15
+      portMappings:
+        - host: 5432
+          container: 5432
+      isPersistent: true
+      volumes:
+        - source: postgres-data
+          target: /var/lib/postgresql/data
+          isNamed: true
