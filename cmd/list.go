@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stefanjarina/sda/internal/docker"
@@ -58,16 +59,10 @@ var listCmd = &cobra.Command{
 			return
 		}
 
-		columns := []table.Column{
-			{Title: "NAME", Width: 15},
-			{Title: "STATUS", Width: 12},
-			{Title: "VERSION", Width: 12},
-			{Title: "CONTAINER", Width: 20},
-			{Title: "PORTS", Width: 25},
-		}
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "NAME\tSTATUS\tVERSION\tCONTAINER\tPORTS")
 
-		rows := make([]table.Row, len(services))
-		for i, s := range services {
+		for _, s := range services {
 			ports := ""
 			if len(s.Ports) > 0 {
 				ports = s.Ports[0]
@@ -78,6 +73,7 @@ var listCmd = &cobra.Command{
 
 			statusText := cleanStatus(s.Status)
 			statusCell := s.StatusIcon + " " + statusText
+
 			if !noColor {
 				switch statusText {
 				case "running":
@@ -89,22 +85,14 @@ var listCmd = &cobra.Command{
 				}
 			}
 
-			rows[i] = table.Row{
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
 				s.Name,
 				statusCell,
 				s.Version,
 				s.ContainerName,
-				ports,
-			}
+				ports)
 		}
-
-		t := table.New(
-			table.WithColumns(columns),
-			table.WithRows(rows),
-			table.WithHeight(len(rows)),
-		)
-
-		fmt.Println(t.View())
+		w.Flush()
 	},
 }
 
