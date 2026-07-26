@@ -50,9 +50,9 @@ type Volume struct {
 }
 
 func (c *Config) GetServiceByName(name string) *Service {
-	for _, service := range c.Services {
-		if service.Name == name {
-			return &service
+	for i := range c.Services {
+		if c.Services[i].Name == name {
+			return &c.Services[i]
 		}
 	}
 

@@ -27,8 +27,18 @@ var showCmd = &cobra.Command{
 		}
 
 		client := docker.New()
-		if client.Exists(name) {
-			serviceInfo := client.GetInfo(name)
+		exists, err := client.Exists(name)
+		if err != nil {
+			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
+			utils.ErrorAndExit("")
+		}
+
+		if exists {
+			serviceInfo, err := client.GetInfo(name)
+			if err != nil {
+				utils.Error(fmt.Sprintf("Failed to get info for service '%s': %v", name, err))
+				utils.ErrorAndExit("")
+			}
 
 			if viper.GetBool("json") {
 				utils.Message(serviceInfo)

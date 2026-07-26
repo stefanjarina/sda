@@ -58,15 +58,20 @@ var removeCmd = &cobra.Command{
 			var services []docker.ServiceInfo
 			var actionDesc string
 
+			var listErr error
 			if all {
-				services = client.ListCreated()
+				services, listErr = client.ListCreated()
 				actionDesc = "all services"
 			} else if running {
-				services = client.ListRunning()
+				services, listErr = client.ListRunning()
 				actionDesc = "all running services"
 			} else if stopped {
-				services = client.ListStopped()
+				services, listErr = client.ListStopped()
 				actionDesc = "all stopped services"
+			}
+			if listErr != nil {
+				utils.Error(fmt.Sprintf("Failed to list services: %v", listErr))
+				utils.ErrorAndExit("")
 			}
 
 			if len(services) == 0 {
@@ -95,7 +100,7 @@ var removeCmd = &cobra.Command{
 			var allVolumes []string
 
 			for _, s := range services {
-				err := client.Remove(s.Name)
+				err := client.Remove(s.Name, removeVolumes)
 				if err != nil {
 					utils.Error(fmt.Sprintf("Failed to remove service '%s': %v", s.Name, err))
 					failed = append(failed, s.Name)
@@ -120,7 +125,9 @@ var removeCmd = &cobra.Command{
 					confirmedVolumeRemove = true
 				}
 				if confirmedVolumeRemove {
-					client.RemoveVolumes(allVolumes)
+					if err := client.RemoveVolumes(allVolumes); err != nil {
+						utils.Error(fmt.Sprintf("Failed to remove volumes: %v", err))
+					}
 				}
 			}
 
@@ -160,7 +167,13 @@ var removeCmd = &cobra.Command{
 		}
 
 		// Handle as Docker service
-		if client.Exists(name) {
+		exists, err := client.Exists(name)
+		if err != nil {
+			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
+			utils.ErrorAndExit("")
+		}
+
+		if exists {
 			if !yes {
 				confirmationMessage := fmt.Sprintf("Remove service '%s'? (Y/n): ", name)
 				if removeVolumes {
@@ -174,7 +187,7 @@ var removeCmd = &cobra.Command{
 			}
 
 			fmt.Printf("Removing service '%s'...\n", name)
-			err := client.Remove(name)
+			err := client.Remove(name, removeVolumes)
 			if err != nil {
 				utils.Error(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
 				utils.ErrorAndExit("")
@@ -196,7 +209,9 @@ var removeCmd = &cobra.Command{
 					confirmedVolumeRemove = true
 				}
 				if confirmedVolumeRemove {
-					client.RemoveVolumes(volumes)
+					if err := client.RemoveVolumes(volumes); err != nil {
+						utils.Error(fmt.Sprintf("Failed to remove volumes: %v", err))
+					}
 				}
 			}
 

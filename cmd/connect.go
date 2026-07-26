@@ -26,7 +26,13 @@ var connectCmd = &cobra.Command{
 		}
 
 		client := docker.New()
-		if client.Exists(name) {
+		exists, err := client.Exists(name)
+		if err != nil {
+			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
+			utils.ErrorAndExit("")
+		}
+
+		if exists {
 			password, _ := cmd.Flags().GetString("password")
 			web, _ := cmd.Flags().GetBool("web")
 

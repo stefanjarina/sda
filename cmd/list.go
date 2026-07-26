@@ -57,12 +57,19 @@ var listCmd = &cobra.Command{
 			}
 		} else if available {
 			services = client.ListAvailable()
-		} else if created {
-			services = client.ListCreated()
-		} else if stopped {
-			services = client.ListStopped()
 		} else {
-			services = client.ListRunning()
+			var err error
+			if created {
+				services, err = client.ListCreated()
+			} else if stopped {
+				services, err = client.ListStopped()
+			} else {
+				services, err = client.ListRunning()
+			}
+			if err != nil {
+				utils.Error(fmt.Sprintf("Failed to list services: %v", err))
+				utils.ErrorAndExit("")
+			}
 		}
 
 		if viper.GetBool("json") || format == "json" {

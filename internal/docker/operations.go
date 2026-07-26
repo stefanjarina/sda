@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -30,7 +31,7 @@ func (d *Api) ListAvailable() []ServiceInfo {
 	return services
 }
 
-func (d *Api) ListCreated() []ServiceInfo {
+func (d *Api) ListCreated() ([]ServiceInfo, error) {
 	listOptions := container.ListOptions{
 		Filters: filters.NewArgs(
 			filters.Arg("name", fmt.Sprintf("%s-", config.CONFIG.Prefix)),
@@ -38,7 +39,10 @@ func (d *Api) ListCreated() []ServiceInfo {
 		All: true,
 	}
 
-	result, _ := d.client.ContainerList(d.ctx, listOptions)
+	result, err := d.client.ContainerList(d.ctx, listOptions)
+	if err != nil {
+		return nil, err
+	}
 	var services []ServiceInfo
 
 	for _, s := range result {
@@ -61,10 +65,10 @@ func (d *Api) ListCreated() []ServiceInfo {
 		services = append(services, *serviceInfo)
 	}
 
-	return services
+	return services, nil
 }
 
-func (d *Api) ListRunning() []ServiceInfo {
+func (d *Api) ListRunning() ([]ServiceInfo, error) {
 	listOptions := container.ListOptions{
 		Filters: filters.NewArgs(
 			filters.Arg("name", fmt.Sprintf("%s-", config.CONFIG.Prefix)),
@@ -73,7 +77,10 @@ func (d *Api) ListRunning() []ServiceInfo {
 		All: true,
 	}
 
-	result, _ := d.client.ContainerList(d.ctx, listOptions)
+	result, err := d.client.ContainerList(d.ctx, listOptions)
+	if err != nil {
+		return nil, err
+	}
 	var services []ServiceInfo
 
 	for _, s := range result {
@@ -90,10 +97,10 @@ func (d *Api) ListRunning() []ServiceInfo {
 		services = append(services, *serviceInfo)
 	}
 
-	return services
+	return services, nil
 }
 
-func (d *Api) ListStopped() []ServiceInfo {
+func (d *Api) ListStopped() ([]ServiceInfo, error) {
 	listOptions := container.ListOptions{
 		Filters: filters.NewArgs(
 			filters.Arg("name", fmt.Sprintf("%s-", config.CONFIG.Prefix)),
@@ -102,7 +109,10 @@ func (d *Api) ListStopped() []ServiceInfo {
 		All: true,
 	}
 
-	result, _ := d.client.ContainerList(d.ctx, listOptions)
+	result, err := d.client.ContainerList(d.ctx, listOptions)
+	if err != nil {
+		return nil, err
+	}
 	var services []ServiceInfo
 
 	for _, s := range result {
@@ -119,10 +129,10 @@ func (d *Api) ListStopped() []ServiceInfo {
 		services = append(services, *serviceInfo)
 	}
 
-	return services
+	return services, nil
 }
 
-func (d *Api) GetInfo(name string) ServiceInfo {
+func (d *Api) GetInfo(name string) (ServiceInfo, error) {
 	listOptions := container.ListOptions{
 		Filters: filters.NewArgs(
 			filters.Arg("name", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)),
@@ -130,7 +140,13 @@ func (d *Api) GetInfo(name string) ServiceInfo {
 		All: true,
 	}
 
-	result, _ := d.client.ContainerList(d.ctx, listOptions)
+	result, err := d.client.ContainerList(d.ctx, listOptions)
+	if err != nil {
+		return ServiceInfo{}, err
+	}
+	if len(result) == 0 {
+		return ServiceInfo{}, fmt.Errorf("no container found for service %q", name)
+	}
 	s := result[0]
 
 	serviceInfo := ServiceInfo{
@@ -143,7 +159,7 @@ func (d *Api) GetInfo(name string) ServiceInfo {
 		Status:        s.Status,
 	}
 
-	return serviceInfo
+	return serviceInfo, nil
 }
 
 func (d *Api) Start(name string) error {
@@ -156,19 +172,23 @@ func (d *Api) Stop(name string) error {
 	return err
 }
 
-func (d *Api) Remove(name string) error {
+func (d *Api) Remove(name string, removeVolumes bool) error {
 	err := d.client.ContainerRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.RemoveOptions{
 		Force:         true,
-		RemoveVolumes: true,
+		RemoveVolumes: removeVolumes,
 	})
 
 	return err
 }
 
-func (d *Api) RemoveVolumes(names []string) {
+func (d *Api) RemoveVolumes(names []string) error {
+	var errs []error
 	for _, name := range names {
-		_ = d.client.VolumeRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), true)
+		if err := d.client.VolumeRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), true); err != nil {
+			errs = append(errs, fmt.Errorf("volume %q: %w", name, err))
+		}
 	}
+	return errors.Join(errs...)
 }
 
 func (d *Api) Connect(name string, customPassword string, web bool) error {
@@ -181,7 +201,7 @@ func (d *Api) Connect(name string, customPassword string, web bool) error {
 	}
 }
 
-func (d *Api) Exists(name string) bool {
+func (d *Api) Exists(name string) (bool, error) {
 	listOptions := container.ListOptions{
 		Filters: filters.NewArgs(
 			filters.Arg("name", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)),
@@ -189,8 +209,11 @@ func (d *Api) Exists(name string) bool {
 		All: true,
 	}
 
-	result, _ := d.client.ContainerList(d.ctx, listOptions)
-	return len(result) > 0
+	result, err := d.client.ContainerList(d.ctx, listOptions)
+	if err != nil {
+		return false, err
+	}
+	return len(result) > 0, nil
 }
 
 func handleWebConnect(service *config.Service) error {

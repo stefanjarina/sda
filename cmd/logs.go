@@ -39,7 +39,12 @@ var logsCmd = &cobra.Command{
 		timestamps, _ := cmd.Flags().GetBool("timestamps")
 
 		client := docker.New()
-		if !client.Exists(name) {
+		exists, err := client.Exists(name)
+		if err != nil {
+			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
+			utils.ErrorAndExit("")
+		}
+		if !exists {
 			utils.Error(fmt.Sprintf("Service '%s' not found", name))
 			utils.ErrorAndExit("")
 		}

@@ -15,11 +15,15 @@ import (
 func (d *Api) Create(name string) error {
 	service := config.CONFIG.GetServiceByName(name)
 
-	if d.Exists(name) {
+	exists, err := d.Exists(name)
+	if err != nil {
+		return fmt.Errorf("failed to check if service exists: %w", err)
+	}
+	if exists {
 		return fmt.Errorf("Service %s already exists", name)
 	}
 
-	err := d.fetchImageIfNotExists(service.Docker.ImageName, service.Version)
+	err = d.fetchImageIfNotExists(service.Docker.ImageName, service.Version)
 	if err != nil {
 		return err
 	}

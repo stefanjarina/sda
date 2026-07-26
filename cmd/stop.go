@@ -58,15 +58,20 @@ var stopCmd = &cobra.Command{
 			var services []docker.ServiceInfo
 			var actionDesc string
 
+			var listErr error
 			if all {
-				services = client.ListCreated()
+				services, listErr = client.ListCreated()
 				actionDesc = "all services"
 			} else if running {
-				services = client.ListRunning()
+				services, listErr = client.ListRunning()
 				actionDesc = "all running services"
 			} else if stopped {
-				services = client.ListStopped()
+				services, listErr = client.ListStopped()
 				actionDesc = "all stopped services"
+			}
+			if listErr != nil {
+				utils.Error(fmt.Sprintf("Failed to list services: %v", listErr))
+				utils.ErrorAndExit("")
 			}
 
 			if len(services) == 0 {
@@ -121,7 +126,13 @@ var stopCmd = &cobra.Command{
 		}
 
 		// Handle as Docker service
-		if client.Exists(name) {
+		exists, err := client.Exists(name)
+		if err != nil {
+			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
+			utils.ErrorAndExit("")
+		}
+
+		if exists {
 			err := client.Stop(name)
 			if err != nil {
 				utils.Error(fmt.Sprintf("Failed to stop service '%s': %v", name, err))

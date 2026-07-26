@@ -2,46 +2,26 @@ package docker
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/docker/cli/cli/command"
-	"github.com/docker/cli/cli/flags"
-	"github.com/docker/compose/v5/pkg/api"
-	"github.com/docker/compose/v5/pkg/compose"
 	"github.com/docker/docker/client"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 type Api struct {
-	client        *client.Client
-	composeClient api.Compose
-	ctx           context.Context
+	client *client.Client
+	ctx    context.Context
 }
 
 func New() *Api {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		panic(err)
+		utils.ErrorAndExit(fmt.Sprintf("Failed to create Docker client: %v", err))
 	}
-	defer cli.Close()
-
-	composeCli, err := initializeCompose()
 
 	return &Api{
-		client:        cli,
-		ctx:           ctx,
-		composeClient: composeCli,
+		client: cli,
+		ctx:    ctx,
 	}
-}
-
-func initializeCompose() (api.Compose, error) {
-	dockerCli, _ := command.NewDockerCli()
-
-	dockerContext := "default"
-
-	myOpts := &flags.ClientOptions{Context: dockerContext, LogLevel: "error"}
-	_ = dockerCli.Initialize(myOpts)
-
-	compose.NewComposeService(dockerCli)
-
-	return compose.NewComposeService(dockerCli)
 }

@@ -41,6 +41,23 @@ func TestGetServiceByName_Exists(t *testing.T) {
 	}
 }
 
+func TestGetServiceByName_ReturnsPointerIntoSlice(t *testing.T) {
+	CONFIG = Config{
+		Services: []Service{
+			{Name: "postgres", Docker: Docker{}},
+			{Name: "redis", Docker: Docker{}},
+		},
+	}
+
+	result := CONFIG.GetServiceByName("redis")
+	result.Docker.EnvVars = []string{"FOO=bar"}
+
+	again := CONFIG.GetServiceByName("redis")
+	if len(again.Docker.EnvVars) != 1 || again.Docker.EnvVars[0] != "FOO=bar" {
+		t.Errorf("Expected mutation through returned pointer to be visible in CONFIG.Services, got %v", again.Docker.EnvVars)
+	}
+}
+
 func TestGetServiceByName_NotExists(t *testing.T) {
 	CONFIG = Config{
 		Services: []Service{

@@ -53,7 +53,10 @@ var createCmd = &cobra.Command{
 				}
 
 				// Bring down the existing compose stack
-				_ = client.ComposeDown(*service, removeVolumes)
+				if err := client.ComposeDown(*service, removeVolumes); err != nil {
+					utils.Error(fmt.Sprintf("Failed to bring down existing compose service '%s': %v", serviceName, err))
+					utils.ErrorAndExit("")
+				}
 			}
 
 			if err := client.ComposeUp(*service, build, true); err != nil {
@@ -117,7 +120,13 @@ var createCmd = &cobra.Command{
 
 		cli := docker.New()
 
-		if cli.Exists(serviceName) {
+		serviceExists, err := cli.Exists(serviceName)
+		if err != nil {
+			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", serviceName, err))
+			utils.ErrorAndExit("")
+		}
+
+		if serviceExists {
 			if recreate {
 				if removeVolumes {
 					fmt.Printf("Recreating service '%s' and removing volumes...\n", serviceName)
@@ -138,7 +147,7 @@ var createCmd = &cobra.Command{
 				}
 
 				fmt.Printf("Removing existing service '%s'...\n", serviceName)
-				err := cli.Remove(serviceName)
+				err := cli.Remove(serviceName, removeVolumes)
 				if err != nil {
 					utils.Error(fmt.Sprintf("Failed to remove existing service: %v", err))
 					utils.ErrorAndExit("")
@@ -149,7 +158,9 @@ var createCmd = &cobra.Command{
 					volumes := docker.GetNamedVolumesForService(service)
 					if len(volumes) > 0 {
 						fmt.Printf("Removing volumes: %s...\n", strings.Join(volumes, ", "))
-						cli.RemoveVolumes(volumes)
+						if err := cli.RemoveVolumes(volumes); err != nil {
+							utils.Error(fmt.Sprintf("Failed to remove volumes: %v", err))
+						}
 					}
 				}
 			} else {
@@ -242,7 +253,10 @@ var createCmd = &cobra.Command{
 					utils.ErrorAndExit("Aborting: network must exist to create service")
 				}
 			}
-			_ = cli.CreateNetwork()
+			if err := cli.CreateNetwork(); err != nil {
+				utils.Error(fmt.Sprintf("Failed to create network '%s': %v", config.CONFIG.Network, err))
+				utils.ErrorAndExit("")
+			}
 		}
 
 		if err := cli.Create(serviceName); err != nil {
