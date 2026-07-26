@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
 version: "3"
 
 vars:
@@ -120,9 +122,9 @@ tasks:
   increment:
     desc: Creates new git tag with incremented version
     cmds:
-      - bun scripts/increment_version.ts {{.CLI_ARGS}}
+      - go run bin/increment_version/main.go {{.CLI_ARGS}}
 
   docs:
     desc: Generate documentation
     cmds:
-      - go run bin/gendocs.go {{.CLI_ARGS}}
+      - go run bin/gendocs/main.go {{.CLI_ARGS}}
