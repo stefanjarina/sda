@@ -1,15 +1,10 @@
 package docker
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/docker/cli/cli/command"
-	"github.com/docker/cli/cli/flags"
-	"github.com/docker/compose/v5/pkg/api"
-	"github.com/docker/compose/v5/pkg/compose"
 	"github.com/stefanjarina/sda/internal/config"
 )
 
@@ -66,211 +61,85 @@ func resolveComposePath(service config.Service) (string, error) {
 	return composePath, nil
 }
 
-// createComposeService creates a Docker Compose API service
-func createComposeService() (api.Compose, error) {
-	dockerCli, err := command.NewDockerCli()
+// composeArgs returns the leading `docker compose` argv shared by every
+// compose subcommand: the resolved compose file and the project name.
+func (d *Api) composeArgs(service config.Service) ([]string, error) {
+	if service.Compose == "" {
+		return nil, fmt.Errorf("no compose file specified for service %s", service.Name)
+	}
+
+	composePath, err := resolveComposePath(service)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Docker CLI: %w", err)
+		return nil, err
 	}
 
-	// Initialize Docker CLI with options
-	dockerContext := "default"
-	opts := &flags.ClientOptions{Context: dockerContext, LogLevel: "error"}
-	if err := dockerCli.Initialize(opts); err != nil {
-		return nil, fmt.Errorf("failed to initialize Docker CLI: %w", err)
-	}
-
-	// Create compose service
-	composeService, err := compose.NewComposeService(dockerCli)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create compose service: %w", err)
-	}
-
-	return composeService, nil
+	return []string{"compose", "-f", composePath, "-p", service.Name}, nil
 }
 
 // ComposeUp starts a compose project
 func (d *Api) ComposeUp(service config.Service, build bool, recreate bool) error {
-	if service.Compose == "" {
-		return fmt.Errorf("no compose file specified for service %s", service.Name)
-	}
-
-	// Resolve compose file path
-	composePath, err := resolveComposePath(service)
+	args, err := d.composeArgs(service)
 	if err != nil {
 		return err
 	}
 
-	// Create compose service
-	composeService, err := createComposeService()
-	if err != nil {
-		return err
-	}
-
-	// Load project
-	ctx := context.Background()
-	project, err := composeService.LoadProject(ctx, api.ProjectLoadOptions{
-		ConfigPaths: []string{composePath},
-		ProjectName: service.Name,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to load compose project: %w", err)
-	}
-
-	// Build up options
-	upOptions := api.UpOptions{
-		Create: api.CreateOptions{
-			Services:             []string{},
-			RemoveOrphans:        true,
-			Recreate:             api.RecreateNever,
-			RecreateDependencies: api.RecreateNever,
-			Build:                nil,
-		},
-		Start: api.StartOptions{
-			Project:  project,
-			AttachTo: []string{},
-		},
-	}
-
-	// Apply build flag
+	args = append(args, "up", "--detach", "--remove-orphans")
 	if build {
-		upOptions.Create.Build = &api.BuildOptions{
-			Services: []string{},
-		}
+		args = append(args, "--build")
 	}
-
-	// Apply recreate flag
 	if recreate {
-		upOptions.Create.Recreate = api.RecreateForce
-		upOptions.Create.RecreateDependencies = api.RecreateForce
+		args = append(args, "--force-recreate")
 	}
 
-	// Execute up
-	return composeService.Up(ctx, project, upOptions)
+	return d.run(args...)
 }
 
 // ComposeStart starts a compose project (similar to docker compose start)
 func (d *Api) ComposeStart(service config.Service) error {
-	if service.Compose == "" {
-		return fmt.Errorf("no compose file specified for service %s", service.Name)
-	}
-
-	// Resolve compose file path (for validation)
-	_, err := resolveComposePath(service)
+	args, err := d.composeArgs(service)
 	if err != nil {
 		return err
 	}
 
-	// Create compose service
-	composeService, err := createComposeService()
-	if err != nil {
-		return err
-	}
-
-	// Execute start
-	ctx := context.Background()
-	startOptions := api.StartOptions{
-		Services: []string{},
-	}
-
-	return composeService.Start(ctx, service.Name, startOptions)
+	return d.run(append(args, "start")...)
 }
 
 // ComposeStop stops a compose project without removing it
 func (d *Api) ComposeStop(service config.Service) error {
-	if service.Compose == "" {
-		return fmt.Errorf("no compose file specified for service %s", service.Name)
-	}
-
-	// Resolve compose file path (for validation)
-	_, err := resolveComposePath(service)
+	args, err := d.composeArgs(service)
 	if err != nil {
 		return err
 	}
 
-	// Create compose service
-	composeService, err := createComposeService()
-	if err != nil {
-		return err
-	}
-
-	// Execute stop
-	ctx := context.Background()
-	stopOptions := api.StopOptions{
-		Services: []string{},
-	}
-
-	return composeService.Stop(ctx, service.Name, stopOptions)
+	return d.run(append(args, "stop")...)
 }
 
 // ComposeDown stops and removes a compose project
 func (d *Api) ComposeDown(service config.Service, removeVolumes bool) error {
-	if service.Compose == "" {
-		return fmt.Errorf("no compose file specified for service %s", service.Name)
-	}
-
-	// Resolve compose file path (for validation)
-	_, err := resolveComposePath(service)
+	args, err := d.composeArgs(service)
 	if err != nil {
 		return err
 	}
 
-	// Create compose service
-	composeService, err := createComposeService()
-	if err != nil {
-		return err
+	args = append(args, "down", "--remove-orphans")
+	if removeVolumes {
+		args = append(args, "--volumes")
 	}
 
-	// Execute down
-	ctx := context.Background()
-	downOptions := api.DownOptions{
-		RemoveOrphans: true,
-		Project:       nil,
-		Volumes:       removeVolumes,
-		Images:        "",
-	}
-
-	return composeService.Down(ctx, service.Name, downOptions)
+	return d.run(args...)
 }
-
-// ComposeLogConsumer implements api.LogConsumer interface for streaming logs
-type ComposeLogConsumer struct{}
-
-func (l *ComposeLogConsumer) Log(containerName, message string) {
-	fmt.Printf("[%s] %s\n", containerName, message)
-}
-
-func (l *ComposeLogConsumer) Err(containerName, message string) {
-	fmt.Fprintf(os.Stderr, "[%s] %s\n", containerName, message)
-}
-
-func (l *ComposeLogConsumer) Status(container, msg string) {}
 
 // ComposeLogs shows logs from a compose project
 func (d *Api) ComposeLogs(service config.Service, follow bool) error {
-	if service.Compose == "" {
-		return fmt.Errorf("no compose file specified for service %s", service.Name)
-	}
-
-	// Resolve compose file path (for validation)
-	_, err := resolveComposePath(service)
+	args, err := d.composeArgs(service)
 	if err != nil {
 		return err
 	}
 
-	// Create compose service
-	composeService, err := createComposeService()
-	if err != nil {
-		return err
+	args = append(args, "logs")
+	if follow {
+		args = append(args, "--follow")
 	}
 
-	// Execute logs
-	ctx := context.Background()
-	logOptions := api.LogOptions{
-		Services: []string{},
-		Follow:   follow,
-	}
-
-	consumer := &ComposeLogConsumer{}
-	return composeService.Logs(ctx, service.Name, consumer, logOptions)
+	return d.run(args...)
 }

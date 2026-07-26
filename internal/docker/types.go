@@ -10,3 +10,10 @@ type ServiceInfo struct {
 	Status        string
 	StatusIcon    string
 }
+
+// LogsOptions controls `docker logs` output.
+type LogsOptions struct {
+	Follow     bool
+	Timestamps bool
+	Tail       int
+}

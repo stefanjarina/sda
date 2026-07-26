@@ -1,27 +1,22 @@
 package docker
 
 import (
-	"context"
-	"fmt"
+	"os/exec"
 
-	"github.com/docker/docker/client"
 	"github.com/stefanjarina/sda/internal/utils"
 )
 
 type Api struct {
-	client *client.Client
-	ctx    context.Context
+	path string
 }
 
 func New() *Api {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	path, err := exec.LookPath("docker")
 	if err != nil {
-		utils.ErrorAndExit(fmt.Sprintf("Failed to create Docker client: %v", err))
+		utils.ErrorAndExit("Docker CLI not found in PATH. Install Docker: https://docs.docker.com/get-docker/")
 	}
 
 	return &Api{
-		client: cli,
-		ctx:    ctx,
+		path: path,
 	}
 }

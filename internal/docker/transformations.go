@@ -3,13 +3,9 @@ package docker
 import (
 	"bytes"
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 	"text/template"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/go-units"
 	"github.com/stefanjarina/sda/internal/config"
 )
 
@@ -24,8 +20,7 @@ func GetNamedVolumesForService(service *config.Service) []string {
 }
 
 func getNameFromContainerName(containerName string) string {
-	containerName = containerName[len(config.CONFIG.Prefix)+2:]
-	return containerName
+	return strings.TrimPrefix(containerName, config.CONFIG.Prefix+"-")
 }
 
 func getVersionFromImageName(imageName string) string {
@@ -33,11 +28,36 @@ func getVersionFromImageName(imageName string) string {
 	return imageName
 }
 
-func getPortsFromContainer(containerPorts []types.Port) []string {
+// parsePorts converts docker CLI's Ports column (e.g.
+// "0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp") into ["5432:5432"],
+// deduplicating the IPv4/IPv6 rows Docker reports for the same published
+// port and skipping ports that are exposed but not published (no "->").
+func parsePorts(portsStr string) []string {
 	var ports []string
-	for _, port := range containerPorts {
-		ports = append(ports, fmt.Sprintf("%d:%d", port.PublicPort, port.PrivatePort))
+	seen := make(map[string]bool)
+
+	for _, entry := range strings.Split(portsStr, ", ") {
+		entry = strings.TrimSpace(entry)
+		arrowIdx := strings.Index(entry, "->")
+		if entry == "" || arrowIdx == -1 {
+			continue
+		}
+
+		hostPart := entry[:arrowIdx]
+		hostPort := hostPart[strings.LastIndex(hostPart, ":")+1:]
+
+		containerPart := entry[arrowIdx+2:]
+		if slashIdx := strings.Index(containerPart, "/"); slashIdx != -1 {
+			containerPart = containerPart[:slashIdx]
+		}
+
+		mapping := fmt.Sprintf("%s:%s", hostPort, containerPart)
+		if !seen[mapping] {
+			seen[mapping] = true
+			ports = append(ports, mapping)
+		}
 	}
+
 	return ports
 }
 
@@ -58,42 +78,4 @@ func replacePassword(text string, service *config.Service, defaultPassword strin
 
 	result := replacePlaceholder(text, map[string]string{"PASSWORD": password})
 	return result
-}
-
-func parseUlimits(args []string) []*units.Ulimit {
-	var ulimits []*units.Ulimit
-	for _, arg := range args {
-		ulimit := parseUlimit(arg)
-		if ulimit != nil {
-			ulimits = append(ulimits, ulimit)
-		}
-	}
-	return ulimits
-}
-
-func parseUlimit(text string) *units.Ulimit {
-	var r = regexp.MustCompile(`--ulimit\s(?P<name>\w+)=(?P<soft>\d+):(?P<hard>\d+)`)
-	var u *units.Ulimit
-	match := r.FindStringSubmatch(text)
-	matchNames := r.SubexpNames()
-	if match != nil {
-		name := getMatchByName("name", match, matchNames)
-		soft, _ := strconv.ParseInt(getMatchByName("soft", match, matchNames), 10, 64)
-		hard, _ := strconv.ParseInt(getMatchByName("hard", match, matchNames), 10, 64)
-		u = &units.Ulimit{
-			Name: name,
-			Soft: soft,
-			Hard: hard,
-		}
-	}
-	return u
-}
-
-func getMatchByName(name string, match []string, matchNames []string) string {
-	for i, matchName := range matchNames {
-		if matchName == name {
-			return match[i]
-		}
-	}
-	return ""
 }

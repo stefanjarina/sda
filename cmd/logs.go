@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
 
-	"github.com/docker/docker/api/types/container"
 	"github.com/spf13/cobra"
 	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
@@ -49,24 +46,14 @@ var logsCmd = &cobra.Command{
 			utils.ErrorAndExit("")
 		}
 
-		logOptions := container.LogsOptions{
+		logOptions := docker.LogsOptions{
 			Follow:     follow,
-			Tail:       fmt.Sprintf("%d", tail),
+			Tail:       tail,
 			Timestamps: timestamps,
-			ShowStdout: true,
-			ShowStderr: true,
 		}
 
-		reader, err := client.GetContainerLogs(name, logOptions)
-		if err != nil {
+		if err := client.Logs(name, logOptions); err != nil {
 			utils.Error(fmt.Sprintf("Failed to get logs: %v", err))
-			utils.ErrorAndExit("")
-		}
-		defer reader.Close()
-
-		_, err = io.Copy(os.Stdout, reader)
-		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to output logs: %v", err))
 			utils.ErrorAndExit("")
 		}
 	},

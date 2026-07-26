@@ -1,49 +1,10 @@
 package utils
 
 import (
-	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
-	"syscall"
 )
-
-func GetPath(command string) (string, error) {
-	path, err := exec.LookPath(command)
-	if err != nil {
-		return "", err
-	}
-	return path, nil
-}
-
-func RunInteractive(command string, containerName string) error {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("pwsh", "-ExecutionPolicy", "Unrestricted", "-Command", fmt.Sprintf("docker exec -it %s %s\n", containerName, command))
-	} else {
-		cmd = exec.Command("zsh", "-c", "source ~/.zshrc; "+fmt.Sprintf("docker exec -it %s %s\n", containerName, command))
-	}
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func RunAndReplace(command string, containerName string) {
-	path, err := GetPath("docker")
-	if err != nil {
-		panic(err)
-	}
-	err = syscall.Exec(path, []string{"exec", "-it", containerName, fmt.Sprintf("\"%s\"", command)}, os.Environ())
-	// We don't expect this to ever return; if it does something is really wrong
-	panic(err)
-}
 
 // https://stackoverflow.com/questions/39320371/how-start-web-server-to-open-page-in-browser-in-golang
 

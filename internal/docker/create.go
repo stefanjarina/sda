@@ -2,13 +2,8 @@ package docker
 
 import (
 	"fmt"
-	"io"
+	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/go-connections/nat"
 	"github.com/stefanjarina/sda/internal/config"
 )
 
@@ -20,145 +15,67 @@ func (d *Api) Create(name string) error {
 		return fmt.Errorf("failed to check if service exists: %w", err)
 	}
 	if exists {
-		return fmt.Errorf("Service %s already exists", name)
+		return fmt.Errorf("service %s already exists", name)
 	}
 
-	err = d.fetchImageIfNotExists(service.Docker.ImageName, service.Version)
-	if err != nil {
+	imageRef := fmt.Sprintf("%s:%s", service.Docker.ImageName, service.Version)
+	if err := d.fetchImageIfNotExists(imageRef); err != nil {
 		return err
 	}
 
-	containerConfig := &container.Config{}
-	hostConfig := &container.HostConfig{}
+	args := buildCreateArgs(service, containerName(name), config.CONFIG.Network, config.CONFIG.Password)
 
-	containerConfig.Image = fmt.Sprintf("%s:%s", service.Docker.ImageName, service.Version)
-
-	if service.Docker.EnvVars != nil {
-		// patchEnvVars
-		var envVars []string
-		for _, envVar := range service.Docker.EnvVars {
-			envVars = append(envVars, replacePassword(envVar, service, config.CONFIG.Password))
-		}
-
-		containerConfig.Env = envVars
-	}
-
-	if service.Docker.CustomAppCommands != nil {
-		// patchEnvVars
-		var customCommands []string
-		for _, customCommand := range service.Docker.CustomAppCommands {
-			customCommands = append(customCommands, replacePassword(customCommand, service, config.CONFIG.Password))
-		}
-
-		containerConfig.Cmd = customCommands
-	}
-
-	if service.Docker.Volumes != nil {
-		//hostConfig.Mounts, _ = d.mapMounts(service.Docker.Volumes, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
-		containerConfig.Volumes = mapVolumes(service.Docker.Volumes)
-		hostConfig.Binds = mapBinds(service.Docker.Volumes, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
-	}
-
-	if service.Docker.PortMappings != nil {
-		ports, _ := mapPorts(service.Docker.PortMappings)
-		hostConfig.PortBindings = ports
-	}
-
-	//parse --ulimit nofile=262144:262144 from additional arguments
-	hostConfig.Ulimits = parseUlimits(service.Docker.AdditionalDockerArguments)
-
-	_, err = d.client.ContainerCreate(d.ctx, containerConfig, hostConfig, nil, nil, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
-	if err != nil {
+	if _, err := d.capture(args...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *Api) fetchImageIfNotExists(name string, version string) error {
-	nameAndVersion := fmt.Sprintf("%s:%s", name, version)
-	_, _, err := d.client.ImageInspectWithRaw(d.ctx, name)
-	if err != nil {
-		reader, err := d.client.ImagePull(d.ctx, nameAndVersion, image.PullOptions{})
-		if err != nil {
-			return err
-		}
-		defer reader.Close()
+// buildCreateArgs builds the argv for `docker create`, translating the
+// service's config into the equivalent CLI flags.
+func buildCreateArgs(service *config.Service, containerName, network, password string) []string {
+	args := []string{"create", "--name", containerName}
 
-		fmt.Printf("Pulling image '%s'...\n", nameAndVersion)
-		_, err = io.Copy(io.Discard, reader)
-		if err != nil {
-			return err
-		}
+	if network != "" {
+		args = append(args, "--network", network)
 	}
-	return nil
+
+	for _, envVar := range service.Docker.EnvVars {
+		args = append(args, "--env", replacePassword(envVar, service, password))
+	}
+
+	for _, v := range service.Docker.Volumes {
+		source := replacePlaceholder(v.Source, map[string]string{"NAME": containerName})
+		args = append(args, "--volume", fmt.Sprintf("%s:%s", source, v.Target))
+	}
+
+	for _, p := range service.Docker.PortMappings {
+		args = append(args, "--publish", fmt.Sprintf("%d:%d", p.Host, p.Container))
+	}
+
+	// e.g. "--ulimit nofile=262144:262144" - passed straight through so any
+	// docker create flag works here, not just --ulimit.
+	for _, extra := range service.Docker.AdditionalDockerArguments {
+		args = append(args, strings.Fields(extra)...)
+	}
+
+	args = append(args, fmt.Sprintf("%s:%s", service.Docker.ImageName, service.Version))
+
+	for _, cmd := range service.Docker.CustomAppCommands {
+		args = append(args, strings.Fields(cmd)...)
+	}
+
+	return args
 }
 
-func (d *Api) createDockerVolume(volumeName string) error {
-	volumeOptions := volume.CreateOptions{
-		Name: volumeName,
+// fetchImageIfNotExists pulls imageRef (e.g. "postgres:16") unless it is
+// already present locally.
+func (d *Api) fetchImageIfNotExists(imageRef string) error {
+	if _, err := d.capture("image", "inspect", imageRef); err == nil {
+		return nil
 	}
 
-	_, err := d.client.VolumeCreate(d.ctx, volumeOptions)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *Api) mapMounts(volumes []config.Volume, name string) ([]mount.Mount, error) {
-	var mounts []mount.Mount
-	for _, v := range volumes {
-		volumeSource := replacePlaceholder(v.Source, map[string]string{"NAME": name})
-		if v.IsNamed {
-			err := d.createDockerVolume(volumeSource)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		var mountType mount.Type = mount.TypeBind
-		if v.IsNamed {
-			mountType = mount.TypeVolume
-		}
-
-		m := mount.Mount{
-			Type:   mountType,
-			Source: volumeSource,
-			Target: v.Target,
-		}
-		mounts = append(mounts, m)
-	}
-	return mounts, nil
-}
-
-func mapVolumes(volumes []config.Volume) map[string]struct{} {
-	result := make(map[string]struct{})
-	for _, v := range volumes {
-		result[v.Target] = struct{}{}
-	}
-	return result
-}
-
-func mapBinds(volumes []config.Volume, name string) []string {
-	var result []string
-	for _, v := range volumes {
-		result = append(result, fmt.Sprintf("%s:%s", replacePlaceholder(v.Source, map[string]string{"NAME": name}), v.Target))
-	}
-	return result
-}
-
-func mapPorts(ports []config.PortMapping) (nat.PortMap, error) {
-	portBindings := nat.PortMap{}
-	for _, port := range ports {
-		portBinding := nat.PortBinding{
-			HostIP:   "",
-			HostPort: fmt.Sprintf("%d", port.Host),
-		}
-
-		var portName nat.Port = nat.Port(fmt.Sprintf("%d/tcp", port.Container))
-		portBindings[portName] = []nat.PortBinding{portBinding}
-	}
-	return portBindings, nil
+	fmt.Printf("Pulling image '%s'...\n", imageRef)
+	return d.run("pull", imageRef)
 }

@@ -1,16 +1,24 @@
 package docker
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/utils"
 )
+
+// psEntry is the subset of `docker ps --format {{json .}}` fields sda needs.
+type psEntry struct {
+	ID     string `json:"ID"`
+	Names  string `json:"Names"`
+	Image  string `json:"Image"`
+	Ports  string `json:"Ports"`
+	Status string `json:"Status"`
+	State  string `json:"State"`
+}
 
 func (d *Api) ListAvailable() []ServiceInfo {
 	var services []ServiceInfo
@@ -31,160 +39,154 @@ func (d *Api) ListAvailable() []ServiceInfo {
 	return services
 }
 
-func (d *Api) ListCreated() ([]ServiceInfo, error) {
-	listOptions := container.ListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("name", fmt.Sprintf("%s-", config.CONFIG.Prefix)),
-		),
-		All: true,
+// psJSON runs `docker ps` narrowed by the given filter expressions (each
+// passed as its own --filter) and decodes its newline-delimited JSON output.
+func (d *Api) psJSON(filters ...string) ([]psEntry, error) {
+	args := []string{"ps", "--all", "--no-trunc", "--format", "{{json .}}"}
+	for _, f := range filters {
+		args = append(args, "--filter", f)
 	}
 
-	result, err := d.client.ContainerList(d.ctx, listOptions)
+	out, err := d.capture(args...)
 	if err != nil {
 		return nil, err
 	}
-	var services []ServiceInfo
+	if out == "" {
+		return nil, nil
+	}
 
-	for _, s := range result {
-		statusIcon := "○"
-		if strings.HasPrefix(s.Status, "Up") {
-			statusIcon = "●"
-		} else if strings.HasPrefix(s.Status, "Exited") {
-			statusIcon = "✗"
+	var entries []psEntry
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
 		}
-		serviceInfo := &ServiceInfo{
-			Name:          getNameFromContainerName(s.Names[0]),
-			ContainerName: s.Names[0][1:],
-			ID:            s.ID,
-			Image:         s.Image,
-			Version:       getVersionFromImageName(s.Image),
-			Ports:         getPortsFromContainer(s.Ports),
-			Status:        s.Status,
-			StatusIcon:    statusIcon,
+		var e psEntry
+		if err := json.Unmarshal([]byte(line), &e); err != nil {
+			return nil, fmt.Errorf("failed to parse docker ps output: %w", err)
 		}
-		services = append(services, *serviceInfo)
+		entries = append(entries, e)
+	}
+
+	return entries, nil
+}
+
+func toServiceInfo(e psEntry) ServiceInfo {
+	statusIcon := "○"
+	switch e.State {
+	case "running":
+		statusIcon = "●"
+	case "exited":
+		statusIcon = "✗"
+	}
+
+	return ServiceInfo{
+		Name:          getNameFromContainerName(e.Names),
+		ContainerName: e.Names,
+		ID:            e.ID,
+		Image:         e.Image,
+		Version:       getVersionFromImageName(e.Image),
+		Ports:         parsePorts(e.Ports),
+		Status:        e.Status,
+		StatusIcon:    statusIcon,
+	}
+}
+
+// list returns containers managed by sda (name-prefixed), optionally
+// narrowed to a status ("running", "exited", or "" for all).
+func (d *Api) list(status string) ([]ServiceInfo, error) {
+	filters := []string{"name=" + config.CONFIG.Prefix + "-"}
+	if status != "" {
+		filters = append(filters, "status="+status)
+	}
+
+	entries, err := d.psJSON(filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	var services []ServiceInfo
+	for _, e := range entries {
+		services = append(services, toServiceInfo(e))
 	}
 
 	return services, nil
+}
+
+func (d *Api) ListCreated() ([]ServiceInfo, error) {
+	return d.list("")
 }
 
 func (d *Api) ListRunning() ([]ServiceInfo, error) {
-	listOptions := container.ListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("name", fmt.Sprintf("%s-", config.CONFIG.Prefix)),
-			filters.Arg("status", "running"),
-		),
-		All: true,
-	}
-
-	result, err := d.client.ContainerList(d.ctx, listOptions)
-	if err != nil {
-		return nil, err
-	}
-	var services []ServiceInfo
-
-	for _, s := range result {
-		serviceInfo := &ServiceInfo{
-			Name:          getNameFromContainerName(s.Names[0]),
-			ContainerName: s.Names[0][1:],
-			ID:            s.ID,
-			Image:         s.Image,
-			Version:       getVersionFromImageName(s.Image),
-			Ports:         getPortsFromContainer(s.Ports),
-			Status:        s.Status,
-			StatusIcon:    "●",
-		}
-		services = append(services, *serviceInfo)
-	}
-
-	return services, nil
+	return d.list("running")
 }
 
 func (d *Api) ListStopped() ([]ServiceInfo, error) {
-	listOptions := container.ListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("name", fmt.Sprintf("%s-", config.CONFIG.Prefix)),
-			filters.Arg("status", "exited"),
-		),
-		All: true,
-	}
+	return d.list("exited")
+}
 
-	result, err := d.client.ContainerList(d.ctx, listOptions)
+// findContainer looks up a service's container by its exact container name.
+// `docker ps --filter name=` matches substrings, so "sda-postgres" would also
+// match "sda-postgres-replica" - the exact-name check guards against that.
+func (d *Api) findContainer(name string) (ServiceInfo, bool, error) {
+	name = containerName(name)
+
+	entries, err := d.psJSON("name=" + name)
 	if err != nil {
-		return nil, err
+		return ServiceInfo{}, false, err
 	}
-	var services []ServiceInfo
 
-	for _, s := range result {
-		serviceInfo := &ServiceInfo{
-			Name:          getNameFromContainerName(s.Names[0]),
-			ContainerName: s.Names[0][1:],
-			ID:            s.ID,
-			Image:         s.Image,
-			Version:       getVersionFromImageName(s.Image),
-			Ports:         getPortsFromContainer(s.Ports),
-			Status:        s.Status,
-			StatusIcon:    "✗",
+	for _, e := range entries {
+		if e.Names == name {
+			return toServiceInfo(e), true, nil
 		}
-		services = append(services, *serviceInfo)
 	}
 
-	return services, nil
+	return ServiceInfo{}, false, nil
 }
 
 func (d *Api) GetInfo(name string) (ServiceInfo, error) {
-	listOptions := container.ListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("name", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)),
-		),
-		All: true,
-	}
-
-	result, err := d.client.ContainerList(d.ctx, listOptions)
+	info, found, err := d.findContainer(name)
 	if err != nil {
 		return ServiceInfo{}, err
 	}
-	if len(result) == 0 {
+	if !found {
 		return ServiceInfo{}, fmt.Errorf("no container found for service %q", name)
 	}
-	s := result[0]
 
-	serviceInfo := ServiceInfo{
-		Name:          getNameFromContainerName(s.Names[0]),
-		ContainerName: s.Names[0][1:],
-		ID:            s.ID,
-		Image:         s.Image,
-		Version:       getVersionFromImageName(s.Image),
-		Ports:         getPortsFromContainer(s.Ports),
-		Status:        s.Status,
-	}
+	return info, nil
+}
 
-	return serviceInfo, nil
+func (d *Api) Exists(name string) (bool, error) {
+	_, found, err := d.findContainer(name)
+	return found, err
 }
 
 func (d *Api) Start(name string) error {
-	err := d.client.ContainerStart(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.StartOptions{})
+	_, err := d.capture("start", containerName(name))
 	return err
 }
 
 func (d *Api) Stop(name string) error {
-	err := d.client.ContainerStop(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.StopOptions{})
+	_, err := d.capture("stop", containerName(name))
 	return err
 }
 
 func (d *Api) Remove(name string, removeVolumes bool) error {
-	err := d.client.ContainerRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), container.RemoveOptions{
-		Force:         true,
-		RemoveVolumes: removeVolumes,
-	})
+	args := []string{"rm", "--force"}
+	if removeVolumes {
+		args = append(args, "--volumes")
+	}
+	args = append(args, containerName(name))
 
+	_, err := d.capture(args...)
 	return err
 }
 
 func (d *Api) RemoveVolumes(names []string) error {
 	var errs []error
 	for _, name := range names {
-		if err := d.client.VolumeRemove(d.ctx, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name), true); err != nil {
+		if _, err := d.capture("volume", "rm", "--force", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)); err != nil {
 			errs = append(errs, fmt.Errorf("volume %q: %w", name, err))
 		}
 	}
@@ -196,59 +198,45 @@ func (d *Api) Connect(name string, customPassword string, web bool) error {
 
 	if web {
 		return handleWebConnect(service)
-	} else {
-		return handleCliConnect(service, customPassword, name)
 	}
+	return d.handleCliConnect(service, customPassword, name)
 }
 
-func (d *Api) Exists(name string) (bool, error) {
-	listOptions := container.ListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("name", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)),
-		),
-		All: true,
+// Logs streams a container's logs directly to sda's own stdout/stderr.
+func (d *Api) Logs(name string, opts LogsOptions) error {
+	args := []string{"logs", "--tail", fmt.Sprintf("%d", opts.Tail)}
+	if opts.Follow {
+		args = append(args, "--follow")
 	}
+	if opts.Timestamps {
+		args = append(args, "--timestamps")
+	}
+	args = append(args, containerName(name))
 
-	result, err := d.client.ContainerList(d.ctx, listOptions)
-	if err != nil {
-		return false, err
-	}
-	return len(result) > 0, nil
+	return d.run(args...)
+}
+
+func containerName(name string) string {
+	return fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)
 }
 
 func handleWebConnect(service *config.Service) error {
-	url := service.WebConnectUrl
-	err := utils.OpenURL(url)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return utils.OpenURL(service.WebConnectUrl)
 }
 
-func handleCliConnect(service *config.Service, customPassword, name string) error {
-	var cmd string
+func (d *Api) handleCliConnect(service *config.Service, customPassword, name string) error {
+	tokens := splitArgs(service.CliConnectCommand)
+
 	if service.HasPassword {
-		var passwordToUse string
+		passwordToUse := config.CONFIG.Password
 		if customPassword != "" {
 			passwordToUse = customPassword
-		} else {
-			passwordToUse = config.CONFIG.Password
 		}
-		cmd = replacePassword(service.CliConnectCommand, service, passwordToUse)
-	} else {
-		cmd = service.CliConnectCommand
+		for i, tok := range tokens {
+			tokens[i] = replacePassword(tok, service, passwordToUse)
+		}
 	}
 
-	err := utils.RunInteractive(cmd, fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *Api) GetContainerLogs(name string, options container.LogsOptions) (io.ReadCloser, error) {
-	containerName := fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)
-	return d.client.ContainerLogs(d.ctx, containerName, options)
+	args := append([]string{"exec", "-it", containerName(name)}, tokens...)
+	return d.runInteractive(args...)
 }

@@ -21,6 +21,14 @@ in `$HOME/.config/sda` directory.
 **This is also project written while learning language and because I use it often
 when I need some dirty server in docker**
 
+## Requirements
+
+`sda` is a thin wrapper around the Docker CLI - it shells out to `docker` rather than talking
+to the daemon directly, so you need:
+
+- [Docker CLI](https://docs.docker.com/get-docker/) ≥ 23.0, available on `PATH`
+- The Docker Compose v2 plugin (`docker compose`), for compose-based services
+
 ## Installation
 
 - Download linux or windows binary from [Releases](https://github.com/stefanjarina/sda/releases/latest)

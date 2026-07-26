@@ -3,26 +3,21 @@ package docker
 import (
 	"fmt"
 
-	"github.com/docker/docker/api/types/network"
 	"github.com/stefanjarina/sda/internal/config"
 )
 
 func (d *Api) CheckNetwork() bool {
-	network, err := d.client.NetworkInspect(d.ctx, config.CONFIG.Network, network.InspectOptions{})
-	if network.Name == "" {
-		return false
-	}
-
+	_, err := d.capture("network", "inspect", config.CONFIG.Network)
 	return err == nil
 }
 
 func (d *Api) CreateNetwork() error {
-	response, err := d.client.NetworkCreate(d.ctx, config.CONFIG.Network, network.CreateOptions{})
+	id, err := d.capture("network", "create", config.CONFIG.Network)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Created network '%s' with ID: %s\n", config.CONFIG.Network, response.ID)
+	fmt.Printf("Created network '%s' with ID: %s\n", config.CONFIG.Network, id)
 
 	return nil
 }

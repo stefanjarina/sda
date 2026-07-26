@@ -10,7 +10,7 @@ The tool is intended for local development to avoid repetitive `docker run` comm
 
 * **Unified Interface:** Same commands work for both Docker and Compose services - users don't need to know the difference
 * **Service Configuration:** YAML-based config file with predefined services
-* **Compose Integration:** First-class support for Docker Compose files via SDK
+* **Compose Integration:** First-class support for Docker Compose files via the `docker compose` CLI
 * **Bulk Operations:** Operate on multiple services at once (`--all`, `--running`, `--stopped`)
 * **Customization:** Override config settings via CLI flags
 * **Interactive Prompts:** Confirmation prompts for destructive operations
@@ -21,8 +21,8 @@ The tool is intended for local development to avoid repetitive `docker run` comm
 * **Language:** Go (1.25.0)
 * **CLI Framework:** [Cobra](https://github.com/spf13/cobra)
 * **Configuration:** [Viper](https://github.com/spf13/viper)
-* **Container Runtime:** [Docker SDK for Go](https://github.com/docker/docker/client)
-* **Compose Runtime:** [Docker Compose SDK v5](https://github.com/docker/compose)
+* **Container Runtime:** Docker CLI, invoked via `os/exec` (no Docker SDK dependency - sda is a thin wrapper and assumes `docker` is already installed)
+* **Compose Runtime:** `docker compose` CLI plugin, invoked the same way
 * **Task Runner:** [Task](https://taskfile.dev/)
 * **Interactive Prompts:** [Promptkit](https://github.com/erikgeiser/promptkit)
 
@@ -61,20 +61,22 @@ Located in `internal/config/`:
 
 Located in `internal/docker/`:
 
-* `api.go` - Docker and Compose client initialization
-* `create.go` - Container creation logic
-* `compose.go` - **NEW:** Compose operations using Docker Compose SDK v5
-  * `ComposeUp()` - Create and start compose stack
-  * `ComposeStart()` - Start existing compose stack
-  * `ComposeStop()` - Stop compose stack without removing
-  * `ComposeDown()` - Stop and remove compose stack
-  * `ComposeLogs()` - Stream compose logs
+* `api.go` - Resolves the `docker` binary on `PATH` (`exec.LookPath`); `Api` just holds that path
+* `exec.go` - The only place that shells out: `capture` (silent, returns stdout, error includes stderr), `run` (stdout/stderr attached, for pull/compose progress), `runInteractive` (+ stdin, for `docker exec -it`)
+* `create.go` - Builds `docker create` argv from a `config.Service` (`buildCreateArgs`), pulls the image first if missing
+* `compose.go` - Wraps the `docker compose` CLI
+  * `ComposeUp()` - `docker compose up --detach --remove-orphans [--build] [--force-recreate]`
+  * `ComposeStart()` - `docker compose start`
+  * `ComposeStop()` - `docker compose stop`
+  * `ComposeDown()` - `docker compose down --remove-orphans [--volumes]`
+  * `ComposeLogs()` - `docker compose logs [--follow]`
   * Path resolution (relative/absolute, file/directory)
   * Folder name validation (must match service name)
-* `operations.go` - List, Start, Stop, Remove, Connect, GetInfo operations
-* `network.go` - Network management
+* `operations.go` - List, Start, Stop, Remove, Connect, GetInfo, Logs operations, all shelling out to `docker ps`/`start`/`stop`/`rm`/`volume rm`/`exec`/`logs`
+* `network.go` - Network management via `docker network inspect`/`create`
 * `transformations.go` - Helper transformations (ports, versions, etc.)
-* `types.go` - Type definitions (ServiceInfo struct)
+* `shellwords.go` - `splitArgs()`, a small quote-aware tokenizer used to turn a `cliConnectCommand` string into `docker exec` argv
+* `types.go` - Type definitions (`ServiceInfo`, `LogsOptions`)
 
 ### Utilities
 
@@ -82,7 +84,7 @@ Located in `internal/utils/`:
 
 * `output.go` - Message, Error, and JSON output functions
 * `prompts.go` - Confirmation prompts
-* `commands.go` - Command execution helpers (RunInteractive, OpenURL)
+* `commands.go` - `OpenURL` (opens a browser for web-connect services)
 * `customFlags.go` - Custom flag types (Enum)
 
 ### Build Tools
@@ -109,8 +111,8 @@ Located in `test/` and `internal/*/`:
 ### Prerequisites
 
 * Go 1.22 or higher
-* Docker (running)
-* Docker Compose (for compose services)
+* Docker CLI ≥ 23.0 (running) - sda shells out to `docker`, it does not vendor a Docker SDK
+* Docker Compose v2 plugin (`docker compose`), for compose services
 * `task` (optional, for convenience)
 
 ### Commands (using `task`)
@@ -300,18 +302,20 @@ sda/
 ├── internal/
 │   ├── config/            # Configuration management
 │   │   └── config.go      # Config structs and methods
-│   ├── docker/            # Docker/Compose operations
-│   │   ├── api.go         # Client initialization
-│   │   ├── create.go      # Container creation
-│   │   ├── compose.go     # Compose SDK integration
-│   │   ├── operations.go  # CRUD operations
+│   ├── docker/            # Docker/Compose operations (shells out to the `docker` CLI)
+│   │   ├── api.go         # Resolves the docker binary on PATH
+│   │   ├── exec.go        # capture/run/runInteractive - the only os/exec call sites
+│   │   ├── create.go      # docker create argv builder + image pull
+│   │   ├── compose.go     # docker compose CLI wrapper
+│   │   ├── operations.go  # CRUD + list/logs/connect operations
 │   │   ├── network.go     # Network management
 │   │   ├── transformations.go  # Helper functions
+│   │   ├── shellwords.go  # cliConnectCommand -> argv tokenizer
 │   │   └── types.go       # Type definitions
 │   └── utils/             # Utility functions
 │       ├── output.go      # Output formatting
 │       ├── prompts.go     # User prompts
-│       ├── commands.go    # Command execution
+│       ├── commands.go    # OpenURL (browser launch)
 │       └── customFlags.go # Custom flag types
 ├── bin/                   # Build-time tools
 │   └── gendocs.go         # Documentation generator
@@ -416,7 +420,7 @@ follow, _ := cmd.Flags().GetBool("follow")
 ### Phase 5: Docker Compose Support
 
 * ✅ Unified interface for Docker and Compose services
-* ✅ Compose SDK v5 integration
+* ✅ Compose CLI integration (`docker compose`)
 * ✅ Path resolution (relative/absolute, file/directory)
 * ✅ Folder name validation
 * ✅ `--compose` filter for list command
@@ -594,11 +598,13 @@ if service != nil && service.IsComposeService() {
 
 * `github.com/spf13/cobra` - CLI framework
 * `github.com/spf13/viper` - Configuration management
-* `github.com/docker/docker` - Docker SDK
-* `github.com/docker/compose/v5` - Docker Compose SDK
 * `github.com/erikgeiser/promptkit` - Interactive prompts
-* `github.com/docker/go-connections` - Docker connection helpers
-* `github.com/docker/go-units` - Docker units parsing
+
+No Docker SDK dependency: `internal/docker` shells out to the `docker` binary via `os/exec`
+instead (see `internal/docker/exec.go`). This was a deliberate simplification - sda is a thin
+CLI wrapper, and pulling in `github.com/docker/docker` + `github.com/docker/compose/v5` dragged
+in ~150 indirect packages (buildx, buildkit, containerd, OpenTelemetry, gRPC, ...) to make a
+dozen API calls.
 
 ### Dev Dependencies
 
@@ -608,7 +614,7 @@ if service != nil && service.IsComposeService() {
 ### Notes
 
 * No testing framework dependencies (uses standard `testing` package)
-* Compose SDK v5 is primary dependency for compose operations
+* Compose operations require the `docker compose` CLI plugin to be installed
 * All dependencies managed via `go.mod`
 
 ## File References
@@ -617,8 +623,9 @@ if service != nil && service.IsComposeService() {
 
 * `cmd/root.go:38` - `GetRootCommand()` exports root for docs generation
 * `internal/config/config.go:27` - `IsComposeService()` service type detection
-* `internal/docker/compose.go:20` - `resolveComposePath()` path resolution logic
-* `internal/docker/compose.go:90` - `ComposeUp()` main compose creation
+* `internal/docker/compose.go` - `resolveComposePath()` path resolution logic, `composeArgs()` shared `docker compose -f ... -p ...` argv, `ComposeUp()` etc.
+* `internal/docker/create.go` - `buildCreateArgs()` translates a `config.Service` into `docker create` argv
+* `internal/docker/exec.go` - `capture`/`run`/`runInteractive`, the only `os/exec` call sites for the `docker` binary
 * `cmd/create.go:33` - Compose service handling in create command
 * `cmd/start.go:113` - Compose service handling in start command
 
@@ -643,16 +650,15 @@ if service == nil {
 **Compose Project Name:**
 
 ```go
-// Service name is used as compose project name
-project, err := composeService.LoadProject(ctx, api.ProjectLoadOptions{
-    ConfigPaths: []string{composePath},
-    ProjectName: service.Name,  // <-- service name here
-})
+// Service name is used as the compose project name (docker compose -p <name>)
+args, err := d.composeArgs(service)
+// -> ["compose", "-f", composePath, "-p", service.Name]
 ```
 
 ## Notes for Future Development
 
-* Compose integration uses SDK, not CLI - better reliability and error handling
+* Compose integration shells out to the `docker compose` CLI plugin - it inherits Docker's own
+  progress rendering and log formatting for free, and needs no SDK dependency
 * All commands route through unified interface - no separate compose commands
 * Service type is transparent to users - detected automatically
 * Path resolution is deterministic - relative to config directory
