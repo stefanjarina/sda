@@ -88,6 +88,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
+	viper.SetEnvPrefix("SDA")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {

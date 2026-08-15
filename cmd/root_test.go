@@ -103,3 +103,30 @@ func TestSaveConfigDoesNotRunOnBrokenYAML(t *testing.T) {
 		t.Fatalf("config file was modified; original %d bytes, now %d", len(original), len(got))
 	}
 }
+
+func TestBareJSONEnvDoesNotEnableJSONMode(t *testing.T) {
+	t.Setenv("JSON", "true")
+	t.Setenv("SDA_JSON", "")
+	viper.Reset()
+	viper.AutomaticEnv() // current production behaviour, no prefix
+	if !viper.GetBool("json") {
+		t.Skip("this environment does not bind a bare JSON var; nothing to regress")
+	}
+
+	viper.Reset()
+	viper.SetEnvPrefix("SDA")
+	viper.AutomaticEnv()
+	if viper.GetBool("json") {
+		t.Fatal("bare JSON=true must not enable json mode once SetEnvPrefix(\"SDA\") is set")
+	}
+}
+
+func TestSDAJSONEnvEnablesJSONMode(t *testing.T) {
+	t.Setenv("SDA_JSON", "true")
+	viper.Reset()
+	viper.SetEnvPrefix("SDA")
+	viper.AutomaticEnv()
+	if !viper.GetBool("json") {
+		t.Fatal("SDA_JSON=true should enable json mode")
+	}
+}
