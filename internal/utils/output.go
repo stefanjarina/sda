@@ -8,8 +8,27 @@ import (
 	"github.com/spf13/viper"
 )
 
+func JSONMode() bool {
+	return viper.GetBool("json")
+}
+
+func Result(msg string) {
+	if JSONMode() {
+		outputJSON(map[string]any{"ok": true, "message": msg})
+		return
+	}
+	fmt.Println(msg)
+}
+
+func Progress(format string, args ...any) {
+	if JSONMode() {
+		return
+	}
+	fmt.Printf(format, args...)
+}
+
 func Message(obj any) {
-	if viper.GetBool("json") {
+	if JSONMode() {
 		outputJSON(obj)
 	} else {
 		outputText(obj)
@@ -27,8 +46,19 @@ func ErrorAndExit(msg string) {
 	os.Exit(1)
 }
 
+// Cancelled exits after a declined confirmation. JSON mode emits one
+// document and exits 1 so a consumer does not treat silence as success.
+// Text mode stays silent and exits 0, matching the previous behaviour.
+func Cancelled() {
+	if JSONMode() {
+		outputJSON(map[string]any{"ok": false, "message": "cancelled"})
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
 func Error(msg string) {
-	if viper.GetBool("json") {
+	if JSONMode() {
 		outputJSON(map[string]string{"error": msg})
 	} else {
 		_, _ = fmt.Fprintln(os.Stderr, msg)

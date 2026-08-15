@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 func (d *Api) Create(name string) error {
@@ -85,6 +86,6 @@ func (d *Api) fetchImageIfNotExists(imageRef string) error {
 		return nil
 	}
 
-	fmt.Printf("Pulling image '%s'...\n", imageRef)
+	utils.Progress("Pulling image '%s'...\n", imageRef)
 	return d.run("pull", imageRef)
 }
