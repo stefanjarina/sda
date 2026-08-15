@@ -20,7 +20,7 @@ tasks:
     desc: Build application
     cmds:
       - echo "Building {{.APP_NAME}}..."
-      - go build -o {{.PUBLISH_DIR}}/{{.APP_NAME}} main.go
+      - go build -ldflags "-X github.com/stefanjarina/sda/cmd.GitTag=$(git describe --tags --always --dirty)" -o {{.PUBLISH_DIR}}/{{.APP_NAME}} main.go
 
   runb:
     desc: Build and run application
