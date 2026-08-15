@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 
-version: "3"
+version: '3'
 
 vars:
   APP_NAME:
@@ -32,7 +32,7 @@ tasks:
     desc: Run application
     cmds:
       - echo "Running {{.APP_NAME}}..."
-      - "{{.PUBLISH_DIR}}/{{.APP_NAME}} {{.CLI_ARGS}}"
+      - '{{.PUBLISH_DIR}}/{{.APP_NAME}} {{.CLI_ARGS}}'
 
   build-all:
     desc: Build for all platforms
@@ -42,45 +42,51 @@ tasks:
         vars:
           GOOS: windows
           GOARCH: amd64
-          OUTPUT: "{{.PUBLISH_DIR}}/sda-windows-x64.exe"
+          OUTPUT: '{{.PUBLISH_DIR}}/sda-windows-x64.exe'
       - echo "Building for 'windows/arm64'..."
       - task: build-platform
         vars:
           GOOS: windows
           GOARCH: arm64
-          OUTPUT: "{{.PUBLISH_DIR}}/sda-windows-arm64.exe"
+          OUTPUT: '{{.PUBLISH_DIR}}/sda-windows-arm64.exe'
       - echo "Building for 'linux/amd64'..."
       - task: build-platform
         vars:
           GOOS: linux
           GOARCH: amd64
-          OUTPUT: "{{.PUBLISH_DIR}}/sda-linux-x64"
+          OUTPUT: '{{.PUBLISH_DIR}}/sda-linux-x64'
       - echo "Building for 'linux/arm64'..."
       - task: build-platform
         vars:
           GOOS: linux
           GOARCH: arm64
-          OUTPUT: "{{.PUBLISH_DIR}}/sda-linux-arm64"
+          OUTPUT: '{{.PUBLISH_DIR}}/sda-linux-arm64'
       - echo "Building for 'darwin/amd64'..."
       - task: build-platform
         vars:
           GOOS: darwin
           GOARCH: amd64
-          OUTPUT: "{{.PUBLISH_DIR}}/sda-darwin-x64"
+          OUTPUT: '{{.PUBLISH_DIR}}/sda-darwin-x64'
       - echo "Building for 'darwin/arm64'..."
       - task: build-platform
         vars:
           GOOS: darwin
           GOARCH: arm64
-          OUTPUT: "{{.PUBLISH_DIR}}/sda-darwin-arm64"
+          OUTPUT: '{{.PUBLISH_DIR}}/sda-darwin-arm64'
 
   build-platform:
     internal: true
     cmds:
       - go build -ldflags "-s -w -X github.com/stefanjarina/sda/cmd.GitTag=$GITHUB_REF_NAME" -o {{.OUTPUT}} main.go
     env:
-      GOOS: "{{.GOOS}}"
-      GOARCH: "{{.GOARCH}}"
+      GOOS: '{{.GOOS}}'
+      GOARCH: '{{.GOARCH}}'
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - echo "Running go vet..."
+      - go vet ./...
 
   test:
     desc: Test the application with coverage
