@@ -171,3 +171,19 @@ func TestJSONModeFollowsViper(t *testing.T) {
 		t.Fatal("expected true")
 	}
 }
+
+func TestRequireYesInJSONMode(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", false)
+	if err := requireYesInJSONMode(); err != nil {
+		t.Fatalf("text mode should allow prompts: %v", err)
+	}
+	viper.Set("json", true)
+	err := requireYesInJSONMode()
+	if err == nil {
+		t.Fatal("expected error in JSON mode")
+	}
+	if !strings.Contains(err.Error(), "--json requires -y") {
+		t.Fatalf("wrong message: %v", err)
+	}
+}
