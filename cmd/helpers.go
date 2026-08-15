@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -274,7 +273,7 @@ func runBulk(client *docker.Api, sel bulkSelector, spec bulkSpec) {
 			names[i] = s.Name
 		}
 		if !utils.Confirm(bulkPrompt(spec.prompt, actionDesc, names, spec.volumes)) {
-			os.Exit(0)
+			utils.Cancelled()
 		}
 	}
 	outcome := newBulkOutcome(spec.verb, spec.started)

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -76,7 +75,7 @@ var removeCmd = &cobra.Command{
 
 				confirmedRemove := utils.Confirm(confirmationMessage)
 				if !confirmedRemove {
-					os.Exit(0)
+					utils.Cancelled()
 				}
 			}
 
@@ -105,7 +104,7 @@ var removeCmd = &cobra.Command{
 
 			confirmedRemove := utils.Confirm(confirmationMessage)
 			if !confirmedRemove {
-				os.Exit(0)
+				utils.Cancelled()
 			}
 		}
 

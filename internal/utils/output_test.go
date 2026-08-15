@@ -172,6 +172,49 @@ func TestJSONModeFollowsViper(t *testing.T) {
 	}
 }
 
+func TestCancelledJSONEmitsDocumentAndExitsNonZero(t *testing.T) {
+	if os.Getenv("SDA_TEST_CANCELLED_JSON") == "1" {
+		viper.Reset()
+		viper.Set("json", true)
+		Cancelled()
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestCancelledJSONEmitsDocumentAndExitsNonZero")
+	cmd.Env = append(os.Environ(), "SDA_TEST_CANCELLED_JSON=1")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatal("expected process to exit non-zero")
+	}
+	var doc map[string]any
+	if jsonErr := json.Unmarshal(out, &doc); jsonErr != nil {
+		t.Fatalf("Cancelled() must emit one JSON document: %v\n%s", jsonErr, out)
+	}
+	if doc["ok"] != false {
+		t.Fatalf("ok: %v", doc["ok"])
+	}
+	if doc["message"] != "cancelled" {
+		t.Fatalf("message: %v", doc["message"])
+	}
+}
+
+func TestCancelledTextEmitsNothingAndExitsZero(t *testing.T) {
+	if os.Getenv("SDA_TEST_CANCELLED_TEXT") == "1" {
+		viper.Reset()
+		viper.Set("json", false)
+		Cancelled()
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestCancelledTextEmitsNothingAndExitsZero")
+	cmd.Env = append(os.Environ(), "SDA_TEST_CANCELLED_TEXT=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("text mode cancel should exit 0: %v\n%s", err, out)
+	}
+	if strings.TrimSpace(string(out)) != "" {
+		t.Fatalf("text mode cancel should be silent, got %q", out)
+	}
+}
+
 func TestRequireYesInJSONMode(t *testing.T) {
 	viper.Reset()
 	viper.Set("json", false)

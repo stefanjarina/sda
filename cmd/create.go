@@ -52,7 +52,7 @@ var createCmd = &cobra.Command{
 					confirmMsg += "(Y/n): "
 
 					if !utils.Confirm(confirmMsg) {
-						os.Exit(0)
+						utils.Cancelled()
 					}
 				}
 
@@ -133,7 +133,7 @@ var createCmd = &cobra.Command{
 					confirmMsg += "(Y/n): "
 
 					if !utils.Confirm(confirmMsg) {
-						os.Exit(0)
+						utils.Cancelled()
 					}
 				}
 
@@ -229,7 +229,7 @@ var createCmd = &cobra.Command{
 		if !yes {
 			answer := utils.Confirm("Proceed? (Y/n): ")
 			if !answer {
-				os.Exit(0)
+				utils.Cancelled()
 			}
 		}
 

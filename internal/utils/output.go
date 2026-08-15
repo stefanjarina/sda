@@ -46,6 +46,17 @@ func ErrorAndExit(msg string) {
 	os.Exit(1)
 }
 
+// Cancelled exits after a declined confirmation. JSON mode emits one
+// document and exits 1 so a consumer does not treat silence as success.
+// Text mode stays silent and exits 0, matching the previous behaviour.
+func Cancelled() {
+	if JSONMode() {
+		outputJSON(map[string]any{"ok": false, "message": "cancelled"})
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
 func Error(msg string) {
 	if JSONMode() {
 		outputJSON(map[string]string{"error": msg})
