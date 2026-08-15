@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -128,5 +129,23 @@ func TestSDAJSONEnvEnablesJSONMode(t *testing.T) {
 	viper.AutomaticEnv()
 	if !viper.GetBool("json") {
 		t.Fatal("SDA_JSON=true should enable json mode")
+	}
+}
+
+func TestSaveConfigWritesPrivateFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile = filepath.Join(dir, "sda.yaml")
+
+	saveConfig([]byte("prefix: sda\n"))
+
+	info, err := os.Stat(cfgFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtime.GOOS == "windows" {
+		return
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Fatalf("config file mode = %04o, want 0600", perm)
 	}
 }
