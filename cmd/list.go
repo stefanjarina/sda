@@ -6,7 +6,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
@@ -32,17 +31,21 @@ var listCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		available, _ := cmd.Flags().GetBool("available")
 		created, _ := cmd.Flags().GetBool("created")
+		running, _ := cmd.Flags().GetBool("running")
 		stopped, _ := cmd.Flags().GetBool("stopped")
 		compose, _ := cmd.Flags().GetBool("compose")
 		noColor, _ := cmd.Flags().GetBool("no-color")
-		format, _ := cmd.Flags().GetString("format")
+
+		mode, err := selectListMode(available, created, running, stopped, compose)
+		if err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
 
 		client := docker.New()
-
 		var services []docker.ServiceInfo
 
-		// Handle compose-only listing
-		if compose {
+		switch mode {
+		case listCompose:
 			for _, svc := range config.CONFIG.Services {
 				if svc.IsComposeService() {
 					services = append(services, docker.ServiceInfo{
@@ -55,23 +58,24 @@ var listCmd = &cobra.Command{
 					})
 				}
 			}
-		} else if available {
+		case listAvailable:
 			services = client.ListAvailable()
-		} else {
-			var err error
-			if created {
-				services, err = client.ListCreated()
-			} else if stopped {
-				services, err = client.ListStopped()
-			} else {
-				services, err = client.ListRunning()
+		default:
+			var listErr error
+			switch mode {
+			case listCreated:
+				services, listErr = client.ListCreated()
+			case listStopped:
+				services, listErr = client.ListStopped()
+			default:
+				services, listErr = client.ListRunning()
 			}
-			if err != nil {
-				utils.ErrorAndExit(fmt.Sprintf("Failed to list services: %v", err))
+			if listErr != nil {
+				utils.ErrorAndExit(fmt.Sprintf("Failed to list services: %v", listErr))
 			}
 		}
 
-		if viper.GetBool("json") || format == "json" {
+		if wantsJSON(cmd) {
 			utils.JSON(services)
 			return
 		}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
@@ -19,9 +17,11 @@ var showCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		// Check if it's a compose service
-		service := config.CONFIG.GetServiceByName(name)
-		if service != nil && service.IsComposeService() {
+		service, err := lookupConfiguredService(name)
+		if err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
+		if service.IsComposeService() {
 			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is a compose service. Show is not supported for compose services", name))
 		}
 
@@ -37,8 +37,8 @@ var showCmd = &cobra.Command{
 				utils.ErrorAndExit(fmt.Sprintf("Failed to get info for service '%s': %v", name, err))
 			}
 
-			if viper.GetBool("json") {
-				utils.Message(serviceInfo)
+			if wantsJSON(cmd) {
+				utils.JSON(serviceInfo)
 				return
 			} else {
 				fmt.Printf("Name: %s\n", serviceInfo.Name)
@@ -57,4 +57,6 @@ var showCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(showCmd)
+
+	showCmd.Flags().String("format", "table", "Output format: table, json")
 }

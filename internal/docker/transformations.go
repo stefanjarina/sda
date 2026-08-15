@@ -36,8 +36,15 @@ func getNameFromContainerName(containerName string) string {
 }
 
 func getVersionFromImageName(imageName string) string {
-	imageName = imageName[strings.LastIndex(imageName, ":")+1:]
-	return imageName
+	lastColon := strings.LastIndex(imageName, ":")
+	lastSlash := strings.LastIndex(imageName, "/")
+	if lastColon > lastSlash {
+		tag := imageName[lastColon+1:]
+		if tag != "" {
+			return tag
+		}
+	}
+	return "latest"
 }
 
 // parsePorts converts docker CLI's Ports column (e.g.
@@ -102,13 +109,14 @@ func ValidateServiceTemplates(service *config.Service) error {
 	if service == nil {
 		return nil
 	}
-	dummy := map[string]string{"NAME": "x", "PASSWORD": "x"}
+	passwordKeys := map[string]string{"PASSWORD": "x"}
+	nameKeys := map[string]string{"NAME": "x"}
 
 	for i, env := range service.Docker.EnvVars {
 		if env == "" {
 			continue
 		}
-		if _, err := replacePlaceholder(env, dummy); err != nil {
+		if _, err := replacePlaceholder(env, passwordKeys); err != nil {
 			return fmt.Errorf("service %q: envVars[%d]: %w", service.Name, i, err)
 		}
 	}
@@ -116,12 +124,12 @@ func ValidateServiceTemplates(service *config.Service) error {
 		if v.Source == "" {
 			continue
 		}
-		if _, err := replacePlaceholder(v.Source, dummy); err != nil {
+		if _, err := replacePlaceholder(v.Source, nameKeys); err != nil {
 			return fmt.Errorf("service %q: volumes[%d].source: %w", service.Name, i, err)
 		}
 	}
 	if service.CliConnectCommand != "" {
-		if _, err := replacePlaceholder(service.CliConnectCommand, dummy); err != nil {
+		if _, err := replacePlaceholder(service.CliConnectCommand, passwordKeys); err != nil {
 			return fmt.Errorf("service %q: cliConnectCommand: %w", service.Name, err)
 		}
 	}

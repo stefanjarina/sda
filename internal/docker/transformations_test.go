@@ -38,7 +38,13 @@ func TestGetVersionFromImageName(t *testing.T) {
 		{"with tag", "postgres:15", "15"},
 		{"with digest", "postgres@sha256:abc123", "abc123"},
 		{"latest tag", "redis:latest", "latest"},
-		{"no tag", "mcr.microsoft.com/mssql/server", "mcr.microsoft.com/mssql/server"},
+		{"no tag", "mcr.microsoft.com/mssql/server", "latest"},
+		{"untagged short name", "postgres", "latest"},
+		{"registry with port, no tag", "localhost:5000/postgres", "latest"},
+		{"registry with port and tag", "registry.io:5000/team/pg:16", "16"},
+		{"ghcr tagged", "ghcr.io/org/app:v1.2.3", "v1.2.3"},
+		{"library path untagged", "library/postgres", "latest"},
+		{"empty tag", "postgres:", "latest"},
 		{"complex version", "neo4j:5.12", "5.12"},
 	}
 
@@ -233,6 +239,52 @@ func TestValidateServiceTemplates_BadEnv(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "mssql") || !strings.Contains(err.Error(), "envVars[1]") {
 		t.Fatalf("error should name service and field, got %v", err)
+	}
+}
+
+func TestValidateServiceTemplates_EnvCannotUseName(t *testing.T) {
+	svc := &config.Service{
+		Name: "postgres",
+		Docker: config.Docker{
+			EnvVars: []string{"FOO={{.NAME}}"},
+		},
+	}
+	err := ValidateServiceTemplates(svc)
+	if err == nil {
+		t.Fatal("expected error: envVars are rendered with PASSWORD only")
+	}
+	if !strings.Contains(err.Error(), "postgres") || !strings.Contains(err.Error(), "envVars[0]") {
+		t.Fatalf("error should name service and field, got %v", err)
+	}
+}
+
+func TestValidateServiceTemplates_VolumeCannotUsePassword(t *testing.T) {
+	svc := &config.Service{
+		Name: "postgres",
+		Docker: config.Docker{
+			Volumes: []config.Volume{{Source: "{{.PASSWORD}}-data", IsNamed: true}},
+		},
+	}
+	err := ValidateServiceTemplates(svc)
+	if err == nil {
+		t.Fatal("expected error: volume sources are rendered with NAME only")
+	}
+	if !strings.Contains(err.Error(), "volumes[0].source") {
+		t.Fatalf("error should name the field, got %v", err)
+	}
+}
+
+func TestValidateServiceTemplates_CliCannotUseName(t *testing.T) {
+	svc := &config.Service{
+		Name:              "postgres",
+		CliConnectCommand: "psql {{.NAME}}",
+	}
+	err := ValidateServiceTemplates(svc)
+	if err == nil {
+		t.Fatal("expected error: cliConnectCommand is rendered with PASSWORD only")
+	}
+	if !strings.Contains(err.Error(), "cliConnectCommand") {
+		t.Fatalf("error should name the field, got %v", err)
 	}
 }
 

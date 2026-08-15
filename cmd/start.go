@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
@@ -48,6 +47,9 @@ var startCmd = &cobra.Command{
 		}
 		if flagCount > 1 {
 			utils.ErrorAndExit("Only one of --all, --running, or --stopped can be specified")
+		}
+		if err := rejectNoOpBulk("start", running, stopped); err != nil {
+			utils.ErrorAndExit(err.Error())
 		}
 
 		client := docker.New()
@@ -111,8 +113,11 @@ var startCmd = &cobra.Command{
 		name := args[0]
 
 		// Check if it's a compose service
-		service := config.CONFIG.GetServiceByName(name)
-		if service != nil && service.IsComposeService() {
+		service, err := lookupConfiguredService(name)
+		if err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
+		if service.IsComposeService() {
 			// Handle as compose service
 			if err := client.ComposeStart(*service); err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Failed to start compose service '%s': %v", name, err))
