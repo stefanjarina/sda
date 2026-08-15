@@ -110,8 +110,10 @@ var removeCmd = &cobra.Command{
 					// Collect volumes if needed
 					if removeVolumes {
 						service := config.CONFIG.GetServiceByName(s.Name)
-						volumes := docker.GetNamedVolumesForService(service)
-						allVolumes = append(allVolumes, volumes...)
+						if service != nil {
+							volumes := docker.GetNamedVolumesForService(service)
+							allVolumes = append(allVolumes, volumes...)
+						}
 					}
 				}
 			}
@@ -195,11 +197,10 @@ var removeCmd = &cobra.Command{
 
 			if removeVolumes {
 				service := config.CONFIG.GetServiceByName(name)
-
 				volumes := docker.GetNamedVolumesForService(service)
 
 				if len(volumes) == 0 {
-					os.Exit(0)
+					return
 				}
 
 				var confirmedVolumeRemove bool

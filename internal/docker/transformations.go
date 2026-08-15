@@ -10,6 +10,9 @@ import (
 )
 
 func GetNamedVolumesForService(service *config.Service) []string {
+	if service == nil {
+		return nil
+	}
 	var volumes []string
 	for _, v := range service.Docker.Volumes {
 		if v.IsNamed {

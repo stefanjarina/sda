@@ -208,9 +208,17 @@ func (d *Api) RemoveVolumes(names []string) error {
 
 func (d *Api) Connect(name string, customPassword string, web bool) error {
 	service := config.CONFIG.GetServiceByName(name)
-
+	if service == nil {
+		return fmt.Errorf("service %q is not in the list of available services", name)
+	}
 	if web {
+		if !service.HasWebConnect || service.WebConnectUrl == "" {
+			return fmt.Errorf("service %q does not support web connect", name)
+		}
 		return handleWebConnect(service)
+	}
+	if !service.HasCliConnect {
+		return fmt.Errorf("service %q does not support CLI connect", name)
 	}
 	return d.handleCliConnect(service, customPassword, name)
 }

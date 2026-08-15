@@ -99,3 +99,51 @@ func TestIsOwnedContainer(t *testing.T) {
 		})
 	}
 }
+
+func TestConnect_MissingService(t *testing.T) {
+	prev := config.CONFIG
+	t.Cleanup(func() { config.CONFIG = prev })
+	config.CONFIG = config.Config{Prefix: "sda", Services: nil}
+
+	err := (&Api{}).Connect("ghost", "", false)
+	if err == nil {
+		t.Fatal("expected error for unknown service")
+	}
+}
+
+func TestConnect_WebNotSupported(t *testing.T) {
+	prev := config.CONFIG
+	t.Cleanup(func() { config.CONFIG = prev })
+	config.CONFIG = config.Config{
+		Prefix: "sda",
+		Services: []config.Service{{
+			Name:          "redis",
+			HasWebConnect: false,
+			HasCliConnect: true,
+		}},
+	}
+
+	err := (&Api{}).Connect("redis", "", true)
+	if err == nil {
+		t.Fatal("expected error when HasWebConnect is false")
+	}
+}
+
+func TestConnect_CliNotSupported(t *testing.T) {
+	prev := config.CONFIG
+	t.Cleanup(func() { config.CONFIG = prev })
+	config.CONFIG = config.Config{
+		Prefix: "sda",
+		Services: []config.Service{{
+			Name:          "webonly",
+			HasWebConnect: true,
+			WebConnectUrl: "http://localhost:8080",
+			HasCliConnect: false,
+		}},
+	}
+
+	err := (&Api{}).Connect("webonly", "", false)
+	if err == nil {
+		t.Fatal("expected error when HasCliConnect is false")
+	}
+}

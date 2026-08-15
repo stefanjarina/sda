@@ -18,9 +18,11 @@ var connectCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		// Check if it's a compose service
 		service := config.CONFIG.GetServiceByName(name)
-		if service != nil && service.IsComposeService() {
+		if service == nil {
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is not in the list of available services", name))
+		}
+		if service.IsComposeService() {
 			utils.Error(fmt.Sprintf("Service '%s' is a compose service", name))
 			utils.ErrorAndExit("Connect command is not yet supported for compose services")
 		}

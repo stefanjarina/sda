@@ -122,6 +122,18 @@ func TestGetNamedVolumesForService(t *testing.T) {
 	}
 }
 
+func TestGetNamedVolumesForService_NilService(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("GetNamedVolumesForService(nil) panicked: %v", r)
+		}
+	}()
+	volumes := GetNamedVolumesForService(nil)
+	if volumes != nil {
+		t.Fatalf("expected nil, got %v", volumes)
+	}
+}
+
 func TestReplacePlaceholder(t *testing.T) {
 	tests := []struct {
 		name     string
