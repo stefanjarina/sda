@@ -2,7 +2,6 @@ package docker
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/stefanjarina/sda/internal/config"
 )
@@ -67,13 +66,13 @@ func buildCreateArgs(service *config.Service, containerName, network, password s
 	// e.g. "--ulimit nofile=262144:262144" - passed straight through so any
 	// docker create flag works here, not just --ulimit.
 	for _, extra := range service.Docker.AdditionalDockerArguments {
-		args = append(args, strings.Fields(extra)...)
+		args = append(args, splitArgs(extra)...)
 	}
 
 	args = append(args, fmt.Sprintf("%s:%s", service.Docker.ImageName, service.Version))
 
 	for _, cmd := range service.Docker.CustomAppCommands {
-		args = append(args, strings.Fields(cmd)...)
+		args = append(args, splitArgs(cmd)...)
 	}
 
 	return args, nil

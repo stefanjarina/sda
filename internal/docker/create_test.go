@@ -139,3 +139,30 @@ func TestBuildCreateArgs_LiteralNamedVolume(t *testing.T) {
 		t.Fatalf("expected --volume pgdata:/var/lib/postgresql/data in %v", got)
 	}
 }
+
+func TestBuildCreateArgs_QuotedAdditionalArgs(t *testing.T) {
+	service := &config.Service{
+		Name: "foo",
+		Docker: config.Docker{
+			ImageName:                 "postgres",
+			AdditionalDockerArguments: []string{`--label description="my service"`},
+			CustomAppCommands:         []string{`--flag "quoted value"`},
+		},
+	}
+	service.Version = "latest"
+
+	got, err := buildCreateArgs(service, "sda-foo", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := []string{
+		"create", "--name", "sda-foo",
+		"--label", "description=my service",
+		"postgres:latest",
+		"--flag", "quoted value",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("buildCreateArgs() =\n  %#v\nwant\n  %#v", got, want)
+	}
+}
