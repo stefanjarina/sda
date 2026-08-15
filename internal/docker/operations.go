@@ -199,7 +199,7 @@ func (d *Api) Remove(name string, removeVolumes bool) error {
 func (d *Api) RemoveVolumes(names []string) error {
 	var errs []error
 	for _, name := range names {
-		if _, err := d.capture("volume", "rm", "--force", fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)); err != nil {
+		if _, err := d.capture("volume", "rm", "--force", name); err != nil {
 			errs = append(errs, fmt.Errorf("volume %q: %w", name, err))
 		}
 	}

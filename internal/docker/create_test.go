@@ -110,3 +110,32 @@ func TestBuildCreateArgs_BadTemplate(t *testing.T) {
 		t.Fatal("expected error for malformed template")
 	}
 }
+
+func TestBuildCreateArgs_LiteralNamedVolume(t *testing.T) {
+	service := &config.Service{
+		Name: "postgres",
+		Docker: config.Docker{
+			ImageName: "postgres",
+			Volumes: []config.Volume{
+				{Source: "pgdata", Target: "/var/lib/postgresql/data", IsNamed: true},
+			},
+		},
+	}
+	service.Version = "16"
+
+	got, err := buildCreateArgs(service, "sda-postgres", "sda", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for i, arg := range got {
+		if arg == "--volume" && i+1 < len(got) && got[i+1] == "pgdata:/var/lib/postgresql/data" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected --volume pgdata:/var/lib/postgresql/data in %v", got)
+	}
+}

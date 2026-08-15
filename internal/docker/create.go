@@ -53,7 +53,7 @@ func buildCreateArgs(service *config.Service, containerName, network, password s
 	}
 
 	for _, v := range service.Docker.Volumes {
-		source, err := replacePlaceholder(v.Source, map[string]string{"NAME": containerName})
+		source, err := expandVolumeSource(v.Source, containerName)
 		if err != nil {
 			return nil, err
 		}
