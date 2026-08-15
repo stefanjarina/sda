@@ -65,14 +65,14 @@ var createCmd = &cobra.Command{
 			if err := client.ComposeUp(*service, build, recreate); err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Failed to create compose service '%s': %v", serviceName, err))
 			}
-			fmt.Printf("Created and started service '%s'\n", serviceName)
+			utils.Result(fmt.Sprintf("Created and started service '%s'", serviceName))
 			return
 		}
 
 		// Handle Docker services
 		build, _ := cmd.Flags().GetBool("build")
 		if build {
-			fmt.Println("Warning: --build flag is only applicable for compose services, ignoring")
+			utils.Progress("Warning: --build flag is only applicable for compose services, ignoring\n")
 		}
 
 		yes, _ := cmd.Flags().GetBool("yes")
@@ -120,9 +120,9 @@ var createCmd = &cobra.Command{
 		if serviceExists {
 			if recreate {
 				if removeVolumes {
-					fmt.Printf("Recreating service '%s' and removing volumes...\n", serviceName)
+					utils.Progress("Recreating service '%s' and removing volumes...\n", serviceName)
 				} else {
-					fmt.Printf("Recreating service '%s' (volumes will be preserved)...\n", serviceName)
+					utils.Progress("Recreating service '%s' (volumes will be preserved)...\n", serviceName)
 				}
 
 				if !yes {
@@ -137,7 +137,7 @@ var createCmd = &cobra.Command{
 					}
 				}
 
-				fmt.Printf("Removing existing service '%s'...\n", serviceName)
+				utils.Progress("Removing existing service '%s'...\n", serviceName)
 				err := cli.Remove(serviceName, removeVolumes)
 				if err != nil {
 					utils.ErrorAndExit(fmt.Sprintf("Failed to remove existing service: %v", err))
@@ -150,9 +150,11 @@ var createCmd = &cobra.Command{
 						utils.ErrorAndExit(fmt.Sprintf("Failed to resolve volumes: %v", err))
 					}
 					if len(volumes) > 0 {
-						fmt.Printf("Removing volumes: %s...\n", strings.Join(volumes, ", "))
+						utils.Progress("Removing volumes: %s...\n", strings.Join(volumes, ", "))
 						if err := cli.RemoveVolumes(volumes); err != nil {
-							utils.Error(fmt.Sprintf("Failed to remove volumes: %v", err))
+							if !utils.JSONMode() {
+								utils.Error(fmt.Sprintf("Failed to remove volumes: %v", err))
+							}
 						}
 					}
 				}
@@ -214,14 +216,14 @@ var createCmd = &cobra.Command{
 		if service.HasPassword {
 			if password != "" {
 				config.CONFIG.UpdatePassword(password)
-				fmt.Printf("Creating '%s' with custom password\n", service.OutputName)
+				utils.Progress("Creating '%s' with custom password\n", service.OutputName)
 			} else {
-				fmt.Printf("Creating '%s' with default password\n", service.OutputName)
-				fmt.Printf("For custom password run: 'sda create %s -p <PASSWORD>'\n", serviceName)
-				fmt.Println("Password must be strong, otherwise Docker fails to create container")
+				utils.Progress("Creating '%s' with default password\n", service.OutputName)
+				utils.Progress("For custom password run: 'sda create %s -p <PASSWORD>'\n", serviceName)
+				utils.Progress("Password must be strong, otherwise Docker fails to create container\n")
 			}
 		} else {
-			fmt.Printf("Creating '%s'\n", service.OutputName)
+			utils.Progress("Creating '%s'\n", service.OutputName)
 		}
 
 		if !yes {
@@ -255,17 +257,17 @@ var createCmd = &cobra.Command{
 			utils.ErrorAndExit(fmt.Sprintf("Failed to create container: %v", err))
 		}
 
-		fmt.Printf("Created service '%s'\n", service.OutputName)
-
 		if noStart {
+			utils.Result(fmt.Sprintf("Created service '%s'", service.OutputName))
 			os.Exit(0)
 		}
+		utils.Progress("Created service '%s'\n", service.OutputName)
 
 		if err := cli.Start(serviceName); err != nil {
 			utils.ErrorAndExit(fmt.Sprintf("Failed to start container: %v", err))
 		}
 
-		fmt.Printf("Started service '%s'\n", service.OutputName)
+		utils.Result(fmt.Sprintf("Started service '%s'", service.OutputName))
 	},
 }
 

@@ -1,9 +1,8 @@
 package docker
 
 import (
-	"fmt"
-
 	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 func (d *Api) CheckNetwork() bool {
@@ -17,7 +16,7 @@ func (d *Api) CreateNetwork() error {
 		return err
 	}
 
-	fmt.Printf("Created network '%s' with ID: %s\n", config.CONFIG.Network, id)
+	utils.Progress("Created network '%s' with ID: %s\n", config.CONFIG.Network, id)
 
 	return nil
 }

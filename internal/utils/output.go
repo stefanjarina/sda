@@ -8,8 +8,27 @@ import (
 	"github.com/spf13/viper"
 )
 
+func JSONMode() bool {
+	return viper.GetBool("json")
+}
+
+func Result(msg string) {
+	if JSONMode() {
+		outputJSON(map[string]any{"ok": true, "message": msg})
+		return
+	}
+	fmt.Println(msg)
+}
+
+func Progress(format string, args ...any) {
+	if JSONMode() {
+		return
+	}
+	fmt.Printf(format, args...)
+}
+
 func Message(obj any) {
-	if viper.GetBool("json") {
+	if JSONMode() {
 		outputJSON(obj)
 	} else {
 		outputText(obj)
@@ -28,7 +47,7 @@ func ErrorAndExit(msg string) {
 }
 
 func Error(msg string) {
-	if viper.GetBool("json") {
+	if JSONMode() {
 		outputJSON(map[string]string{"error": msg})
 	} else {
 		_, _ = fmt.Fprintln(os.Stderr, msg)

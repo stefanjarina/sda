@@ -108,3 +108,66 @@ func TestErrorAndExitSkipsEmptyMessage(t *testing.T) {
 		t.Fatalf("ErrorAndExit(\"\") should emit nothing, got %q", out)
 	}
 }
+
+func TestResultJSONIsASingleDocument(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", true)
+	out := captureStdout(t, func() {
+		Result("Started service 'alpha'")
+	})
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("Result() emitted more than one JSON document: %v\n%s", err, out)
+	}
+	if doc["ok"] != true {
+		t.Fatalf("ok: %v", doc["ok"])
+	}
+	if doc["message"] != "Started service 'alpha'" {
+		t.Fatalf("message: %v", doc["message"])
+	}
+}
+
+func TestResultTextPrintsMessage(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", false)
+	out := captureStdout(t, func() {
+		Result("Started service 'alpha'")
+	})
+	if strings.TrimSpace(out) != "Started service 'alpha'" {
+		t.Fatalf("got %q", out)
+	}
+}
+
+func TestProgressSilentInJSONMode(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", true)
+	out := captureStdout(t, func() {
+		Progress("Pulling image '%s'...\n", "postgres:16")
+	})
+	if strings.TrimSpace(out) != "" {
+		t.Fatalf("progress leaked onto stdout in JSON mode: %q", out)
+	}
+}
+
+func TestProgressPrintsInTextMode(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", false)
+	out := captureStdout(t, func() {
+		Progress("Pulling image '%s'...\n", "postgres:16")
+	})
+	if !strings.Contains(out, "Pulling image 'postgres:16'") {
+		t.Fatalf("got %q", out)
+	}
+}
+
+func TestJSONModeFollowsViper(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", false)
+	if JSONMode() {
+		t.Fatal("expected false")
+	}
+	viper.Set("json", true)
+	if !JSONMode() {
+		t.Fatal("expected true")
+	}
+}

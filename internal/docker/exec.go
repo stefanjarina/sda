@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/stefanjarina/sda/internal/utils"
 )
 
 // capture runs `docker <args...>` and returns its trimmed stdout. If the
@@ -28,7 +30,11 @@ func (d *Api) capture(args ...string) (string, error) {
 // Docker's native progress output (image pulls, compose) is shown live.
 func (d *Api) run(args ...string) error {
 	cmd := exec.Command(d.path, args...)
-	cmd.Stdout = os.Stdout
+	if utils.JSONMode() {
+		cmd.Stdout = os.Stderr
+	} else {
+		cmd.Stdout = os.Stdout
+	}
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
