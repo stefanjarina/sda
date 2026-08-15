@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/stefanjarina/sda/internal/config"
@@ -94,8 +95,17 @@ func toServiceInfo(e psEntry) ServiceInfo {
 
 // list returns containers managed by sda (name-prefixed), optionally
 // narrowed to a status ("running", "exited", or "" for all).
+func ownedNameFilter() string {
+	return "name=^" + regexp.QuoteMeta(config.CONFIG.Prefix+"-")
+}
+
+func isOwnedContainer(name string) bool {
+	name = strings.TrimPrefix(name, "/")
+	return strings.HasPrefix(name, config.CONFIG.Prefix+"-")
+}
+
 func (d *Api) list(status string) ([]ServiceInfo, error) {
-	filters := []string{"name=" + config.CONFIG.Prefix + "-"}
+	filters := []string{ownedNameFilter()}
 	if status != "" {
 		filters = append(filters, "status="+status)
 	}
@@ -107,6 +117,9 @@ func (d *Api) list(status string) ([]ServiceInfo, error) {
 
 	var services []ServiceInfo
 	for _, e := range entries {
+		if !isOwnedContainer(e.Names) {
+			continue
+		}
 		services = append(services, toServiceInfo(e))
 	}
 

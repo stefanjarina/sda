@@ -58,3 +58,44 @@ func TestToServiceInfo_StatusIcons(t *testing.T) {
 		})
 	}
 }
+
+func TestOwnedNameFilterAnchorsPrefix(t *testing.T) {
+	config.CONFIG.Prefix = "sda"
+	got := ownedNameFilter()
+	want := "name=^sda-"
+	if got != want {
+		t.Fatalf("ownedNameFilter() = %q, want %q", got, want)
+	}
+}
+
+func TestOwnedNameFilterQuotesMeta(t *testing.T) {
+	config.CONFIG.Prefix = "sda.dev"
+	got := ownedNameFilter()
+	if got != "name=^sda\\.dev-" {
+		t.Fatalf("ownedNameFilter() = %q, want quoted meta", got)
+	}
+}
+
+func TestIsOwnedContainer(t *testing.T) {
+	config.CONFIG.Prefix = "sda"
+	tests := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"owned", "sda-postgres", true},
+		{"leading slash", "/sda-postgres", true},
+		{"substring in middle", "my-sda-staging", false},
+		{"suffix only", "team-sda-runner", false},
+		{"unrelated", "legacy-db", false},
+		{"prefix without dash", "sda", false},
+		{"empty", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isOwnedContainer(tt.in); got != tt.want {
+				t.Fatalf("isOwnedContainer(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
