@@ -254,7 +254,11 @@ func (d *Api) handleCliConnect(service *config.Service, customPassword, name str
 			passwordToUse = customPassword
 		}
 		for i, tok := range tokens {
-			tokens[i] = replacePassword(tok, service, passwordToUse)
+			replaced, err := replacePassword(tok, service, passwordToUse)
+			if err != nil {
+				return err
+			}
+			tokens[i] = replaced
 		}
 	}
 

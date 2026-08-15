@@ -26,7 +26,10 @@ func TestBuildCreateArgs_Mssql(t *testing.T) {
 	}
 	service.Version = "2022-latest"
 
-	got := buildCreateArgs(service, "sda-mssql", "sda", "s3cr3t")
+	got, err := buildCreateArgs(service, "sda-mssql", "sda", "s3cr3t")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	want := []string{
 		"create", "--name", "sda-mssql",
@@ -55,7 +58,10 @@ func TestBuildCreateArgs_CustomAppCommands(t *testing.T) {
 	}
 	service.Version = "latest"
 
-	got := buildCreateArgs(service, "sda-redis-stack", "sda", "")
+	got, err := buildCreateArgs(service, "sda-redis-stack", "sda", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	want := []string{
 		"create", "--name", "sda-redis-stack",
@@ -77,11 +83,30 @@ func TestBuildCreateArgs_NoNetwork(t *testing.T) {
 	}
 	service.Version = "latest"
 
-	got := buildCreateArgs(service, "sda-redis", "", "")
+	got, err := buildCreateArgs(service, "sda-redis", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	want := []string{"create", "--name", "sda-redis", "redis:latest"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("buildCreateArgs() =\n  %v\nwant\n  %v", got, want)
+	}
+}
+
+func TestBuildCreateArgs_BadTemplate(t *testing.T) {
+	service := &config.Service{
+		Name: "postgres",
+		Docker: config.Docker{
+			ImageName: "postgres",
+			EnvVars:   []string{"POSTGRES_PASSWORD={{.PASSWORD"},
+		},
+	}
+	service.Version = "latest"
+
+	_, err := buildCreateArgs(service, "sda-postgres", "sda", "secret")
+	if err == nil {
+		t.Fatal("expected error for malformed template")
 	}
 }

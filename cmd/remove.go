@@ -111,7 +111,11 @@ var removeCmd = &cobra.Command{
 					if removeVolumes {
 						service := config.CONFIG.GetServiceByName(s.Name)
 						if service != nil {
-							volumes := docker.GetNamedVolumesForService(service)
+							volumes, err := docker.GetNamedVolumesForService(service)
+							if err != nil {
+								utils.Error(fmt.Sprintf("Failed to resolve volumes for '%s': %v", s.Name, err))
+								continue
+							}
 							allVolumes = append(allVolumes, volumes...)
 						}
 					}
@@ -197,7 +201,11 @@ var removeCmd = &cobra.Command{
 
 			if removeVolumes {
 				service := config.CONFIG.GetServiceByName(name)
-				volumes := docker.GetNamedVolumesForService(service)
+				volumes, err := docker.GetNamedVolumesForService(service)
+				if err != nil {
+					utils.Error(fmt.Sprintf("Failed to resolve volumes: %v", err))
+					utils.ErrorAndExit("")
+				}
 
 				if len(volumes) == 0 {
 					return

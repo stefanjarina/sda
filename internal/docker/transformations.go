@@ -9,17 +9,22 @@ import (
 	"github.com/stefanjarina/sda/internal/config"
 )
 
-func GetNamedVolumesForService(service *config.Service) []string {
+func GetNamedVolumesForService(service *config.Service) ([]string, error) {
 	if service == nil {
-		return nil
+		return nil, nil
 	}
 	var volumes []string
 	for _, v := range service.Docker.Volumes {
-		if v.IsNamed {
-			volumes = append(volumes, replacePlaceholder(v.Source, map[string]string{"NAME": service.Name}))
+		if !v.IsNamed {
+			continue
 		}
+		name, err := replacePlaceholder(v.Source, map[string]string{"NAME": service.Name})
+		if err != nil {
+			return nil, fmt.Errorf("service %q volume %q: %w", service.Name, v.Source, err)
+		}
+		volumes = append(volumes, name)
 	}
-	return volumes
+	return volumes, nil
 }
 
 func getNameFromContainerName(containerName string) string {
@@ -64,14 +69,19 @@ func parsePorts(portsStr string) []string {
 	return ports
 }
 
-func replacePlaceholder(text string, obj any) string {
+func replacePlaceholder(text string, obj any) (string, error) {
+	templ, err := template.New("template").Option("missingkey=error").Parse(text)
+	if err != nil {
+		return "", fmt.Errorf("invalid template %q: %w", text, err)
+	}
 	var buf bytes.Buffer
-	templ := template.Must(template.New("template").Parse(text))
-	_ = templ.Execute(&buf, obj)
-	return buf.String()
+	if err := templ.Execute(&buf, obj); err != nil {
+		return "", fmt.Errorf("failed to render %q: %w", text, err)
+	}
+	return buf.String(), nil
 }
 
-func replacePassword(text string, service *config.Service, defaultPassword string) string {
+func replacePassword(text string, service *config.Service, defaultPassword string) (string, error) {
 	var password string
 	if service.CustomPassword != "" {
 		password = service.CustomPassword
@@ -79,6 +89,37 @@ func replacePassword(text string, service *config.Service, defaultPassword strin
 		password = defaultPassword
 	}
 
-	result := replacePlaceholder(text, map[string]string{"PASSWORD": password})
-	return result
+	return replacePlaceholder(text, map[string]string{"PASSWORD": password})
+}
+
+// ValidateServiceTemplates checks env vars, volume sources, and the CLI
+// connect command for parse errors and missing template keys.
+func ValidateServiceTemplates(service *config.Service) error {
+	if service == nil {
+		return nil
+	}
+	dummy := map[string]string{"NAME": "x", "PASSWORD": "x"}
+
+	for i, env := range service.Docker.EnvVars {
+		if env == "" {
+			continue
+		}
+		if _, err := replacePlaceholder(env, dummy); err != nil {
+			return fmt.Errorf("service %q: envVars[%d]: %w", service.Name, i, err)
+		}
+	}
+	for i, v := range service.Docker.Volumes {
+		if v.Source == "" {
+			continue
+		}
+		if _, err := replacePlaceholder(v.Source, dummy); err != nil {
+			return fmt.Errorf("service %q: volumes[%d].source: %w", service.Name, i, err)
+		}
+	}
+	if service.CliConnectCommand != "" {
+		if _, err := replacePlaceholder(service.CliConnectCommand, dummy); err != nil {
+			return fmt.Errorf("service %q: cliConnectCommand: %w", service.Name, err)
+		}
+	}
+	return nil
 }

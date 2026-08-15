@@ -9,6 +9,7 @@ import (
 	"path"
 
 	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -101,6 +102,12 @@ func initConfig() {
 
 	if err := viper.Unmarshal(&config.CONFIG); err != nil {
 		utils.ErrorAndExit(fmt.Sprintf("Error reading config file: %v", err))
+	}
+
+	for i := range config.CONFIG.Services {
+		if err := docker.ValidateServiceTemplates(&config.CONFIG.Services[i]); err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
 	}
 }
 
