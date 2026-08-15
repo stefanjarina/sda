@@ -122,9 +122,7 @@ var removeCmd = &cobra.Command{
 			}
 
 			if len(volumes) == 0 {
-				if utils.JSONMode() {
-					utils.Result(fmt.Sprintf("Removed service '%s'", name))
-				}
+				utils.Result(fmt.Sprintf("Removed service '%s'", name))
 				return
 			}
 
@@ -137,8 +135,8 @@ var removeCmd = &cobra.Command{
 			}
 		}
 
-		if utils.JSONMode() {
-			if volumeErr != nil {
+		if volumeErr != nil {
+			if utils.JSONMode() {
 				utils.JSON(map[string]any{
 					"ok":       true,
 					"message":  fmt.Sprintf("Removed service '%s'", name),
@@ -147,11 +145,10 @@ var removeCmd = &cobra.Command{
 				return
 			}
 			utils.Result(fmt.Sprintf("Removed service '%s'", name))
+			utils.Error(fmt.Sprintf("Failed to remove volumes: %v", volumeErr))
 			return
 		}
-		if volumeErr != nil {
-			utils.Error(fmt.Sprintf("Failed to remove volumes: %v", volumeErr))
-		}
+		utils.Result(fmt.Sprintf("Removed service '%s'", name))
 	},
 }
 
