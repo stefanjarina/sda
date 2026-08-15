@@ -29,11 +29,15 @@ var createCmd = &cobra.Command{
 
 		service := config.CONFIG.GetServiceByName(serviceName)
 
+		recreate, _ := cmd.Flags().GetBool("recreate")
+		removeVolumes, _ := cmd.Flags().GetBool("volumes")
+		if err := requireRecreateForVolumes(recreate, removeVolumes); err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
+
 		// Handle compose services
 		if service != nil && service.IsComposeService() {
 			build, _ := cmd.Flags().GetBool("build")
-			recreate, _ := cmd.Flags().GetBool("recreate")
-			removeVolumes, _ := cmd.Flags().GetBool("volumes")
 			yes, _ := cmd.Flags().GetBool("yes")
 
 			client := docker.New()
@@ -71,13 +75,7 @@ var createCmd = &cobra.Command{
 			fmt.Println("Warning: --build flag is only applicable for compose services, ignoring")
 		}
 
-		recreate, _ := cmd.Flags().GetBool("recreate")
-		removeVolumes, _ := cmd.Flags().GetBool("volumes")
 		yes, _ := cmd.Flags().GetBool("yes")
-
-		if removeVolumes && !recreate {
-			utils.ErrorAndExit("--volumes flag requires --recreate flag")
-		}
 
 		// Get custom flags
 		customPorts, _ := cmd.Flags().GetStringSlice("port")

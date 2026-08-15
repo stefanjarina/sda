@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/stefanjarina/sda/internal/config"
 	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
@@ -20,8 +19,11 @@ var logsCmd = &cobra.Command{
 		follow, _ := cmd.Flags().GetBool("follow")
 
 		// Check if it's a compose service
-		service := config.CONFIG.GetServiceByName(name)
-		if service != nil && service.IsComposeService() {
+		service, err := lookupConfiguredService(name)
+		if err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
+		if service.IsComposeService() {
 			// Handle as compose service
 			client := docker.New()
 			if err := client.ComposeLogs(*service, follow); err != nil {
