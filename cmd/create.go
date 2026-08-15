@@ -54,14 +54,12 @@ var createCmd = &cobra.Command{
 
 				// Bring down the existing compose stack
 				if err := client.ComposeDown(*service, removeVolumes); err != nil {
-					utils.Error(fmt.Sprintf("Failed to bring down existing compose service '%s': %v", serviceName, err))
-					utils.ErrorAndExit("")
+					utils.ErrorAndExit(fmt.Sprintf("Failed to bring down existing compose service '%s': %v", serviceName, err))
 				}
 			}
 
 			if err := client.ComposeUp(*service, build, recreate); err != nil {
-				utils.Error(fmt.Sprintf("Failed to create compose service '%s': %v", serviceName, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to create compose service '%s': %v", serviceName, err))
 			}
 			fmt.Printf("Created and started service '%s'\n", serviceName)
 			return
@@ -78,8 +76,7 @@ var createCmd = &cobra.Command{
 		yes, _ := cmd.Flags().GetBool("yes")
 
 		if removeVolumes && !recreate {
-			utils.Error("--volumes flag requires --recreate flag")
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit("--volumes flag requires --recreate flag")
 		}
 
 		// Get custom flags
@@ -92,8 +89,7 @@ var createCmd = &cobra.Command{
 			portPattern := regexp.MustCompile(`^(\d+):(\d+)$|^(\d+\.\d+\.\d+\.\d+):(\d+):(\d+)$`)
 			for _, port := range customPorts {
 				if !portPattern.MatchString(port) {
-					utils.Error(fmt.Sprintf("Invalid port format: %s (expected HOST:CONTAINER or IP:HOST:CONTAINER)", port))
-					utils.ErrorAndExit("")
+					utils.ErrorAndExit(fmt.Sprintf("Invalid port format: %s (expected HOST:CONTAINER or IP:HOST:CONTAINER)", port))
 				}
 			}
 		}
@@ -102,8 +98,7 @@ var createCmd = &cobra.Command{
 			volumePattern := regexp.MustCompile(`^([^:]+):([^:]+)$`)
 			for _, volume := range customVolumes {
 				if !volumePattern.MatchString(volume) {
-					utils.Error(fmt.Sprintf("Invalid volume format: %s (expected SOURCE:TARGET)", volume))
-					utils.ErrorAndExit("")
+					utils.ErrorAndExit(fmt.Sprintf("Invalid volume format: %s (expected SOURCE:TARGET)", volume))
 				}
 			}
 		}
@@ -112,8 +107,7 @@ var createCmd = &cobra.Command{
 			envPattern := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=.*$`)
 			for _, env := range customEnvVars {
 				if !envPattern.MatchString(env) {
-					utils.Error(fmt.Sprintf("Invalid environment variable format: %s (expected KEY=VALUE)", env))
-					utils.ErrorAndExit("")
+					utils.ErrorAndExit(fmt.Sprintf("Invalid environment variable format: %s (expected KEY=VALUE)", env))
 				}
 			}
 		}
@@ -122,8 +116,7 @@ var createCmd = &cobra.Command{
 
 		serviceExists, err := cli.Exists(serviceName)
 		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", serviceName, err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", serviceName, err))
 		}
 
 		if serviceExists {
@@ -149,16 +142,14 @@ var createCmd = &cobra.Command{
 				fmt.Printf("Removing existing service '%s'...\n", serviceName)
 				err := cli.Remove(serviceName, removeVolumes)
 				if err != nil {
-					utils.Error(fmt.Sprintf("Failed to remove existing service: %v", err))
-					utils.ErrorAndExit("")
+					utils.ErrorAndExit(fmt.Sprintf("Failed to remove existing service: %v", err))
 				}
 
 				if removeVolumes {
 					service := config.CONFIG.GetServiceByName(serviceName)
 					volumes, err := docker.GetNamedVolumesForService(service)
 					if err != nil {
-						utils.Error(fmt.Sprintf("Failed to resolve volumes: %v", err))
-						utils.ErrorAndExit("")
+						utils.ErrorAndExit(fmt.Sprintf("Failed to resolve volumes: %v", err))
 					}
 					if len(volumes) > 0 {
 						fmt.Printf("Removing volumes: %s...\n", strings.Join(volumes, ", "))
@@ -258,14 +249,12 @@ var createCmd = &cobra.Command{
 				}
 			}
 			if err := cli.CreateNetwork(); err != nil {
-				utils.Error(fmt.Sprintf("Failed to create network '%s': %v", config.CONFIG.Network, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to create network '%s': %v", config.CONFIG.Network, err))
 			}
 		}
 
 		if err := cli.Create(serviceName); err != nil {
-			utils.Error(fmt.Sprintf("Failed to create container: %v", err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to create container: %v", err))
 		}
 
 		fmt.Printf("Created service '%s'\n", service.OutputName)
@@ -275,8 +264,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if err := cli.Start(serviceName); err != nil {
-			utils.Error(fmt.Sprintf("Failed to start container: %v", err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to start container: %v", err))
 		}
 
 		fmt.Printf("Started service '%s'\n", service.OutputName)

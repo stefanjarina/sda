@@ -21,7 +21,9 @@ func JSON(obj any) {
 }
 
 func ErrorAndExit(msg string) {
-	Error(msg)
+	if msg != "" {
+		Error(msg)
+	}
 	os.Exit(1)
 }
 

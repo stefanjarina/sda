@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -72,5 +73,38 @@ func TestOutputJSONDoesNotPrintNullAfterMarshalError(t *testing.T) {
 	}
 	if strings.Contains(out, "null") {
 		t.Fatalf("marshal failure fell through and printed null: %q", out)
+	}
+}
+
+func TestErrorJSONIsASingleDocument(t *testing.T) {
+	viper.Reset()
+	viper.Set("json", true)
+	out := captureStdout(t, func() {
+		Error("Failed to check if service 'nonexistent' exists: boom")
+	})
+	var doc map[string]string
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("Error() emitted more than one JSON document (or invalid JSON): %v\n%s", err, out)
+	}
+	if doc["error"] == "" {
+		t.Fatalf("missing error field: %s", out)
+	}
+}
+
+func TestErrorAndExitSkipsEmptyMessage(t *testing.T) {
+	if os.Getenv("SDA_TEST_ERRORANDEXIT") == "1" {
+		viper.Reset()
+		viper.Set("json", true)
+		ErrorAndExit("")
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestErrorAndExitSkipsEmptyMessage")
+	cmd.Env = append(os.Environ(), "SDA_TEST_ERRORANDEXIT=1")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatal("expected process to exit non-zero")
+	}
+	if strings.Contains(string(out), `"error"`) || strings.TrimSpace(string(out)) != "" {
+		t.Fatalf("ErrorAndExit(\"\") should emit nothing, got %q", out)
 	}
 }

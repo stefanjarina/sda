@@ -47,8 +47,7 @@ var removeCmd = &cobra.Command{
 			flagCount++
 		}
 		if flagCount > 1 {
-			utils.Error("Only one of --all, --running, or --stopped can be specified")
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit("Only one of --all, --running, or --stopped can be specified")
 		}
 
 		client := docker.New()
@@ -70,8 +69,7 @@ var removeCmd = &cobra.Command{
 				actionDesc = "all stopped services"
 			}
 			if listErr != nil {
-				utils.Error(fmt.Sprintf("Failed to list services: %v", listErr))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to list services: %v", listErr))
 			}
 
 			if len(services) == 0 {
@@ -138,8 +136,7 @@ var removeCmd = &cobra.Command{
 			}
 
 			if len(failed) > 0 {
-				utils.Error(fmt.Sprintf("Failed to remove: %s", strings.Join(failed, ", ")))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to remove: %s", strings.Join(failed, ", ")))
 			}
 			return
 		}
@@ -165,8 +162,7 @@ var removeCmd = &cobra.Command{
 
 			fmt.Printf("Removing service '%s'...\n", name)
 			if err := client.ComposeDown(*service, removeVolumes); err != nil {
-				utils.Error(fmt.Sprintf("Failed to remove compose service '%s': %v", name, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to remove compose service '%s': %v", name, err))
 			}
 			fmt.Printf("Removed service '%s'\n", name)
 			return
@@ -175,8 +171,7 @@ var removeCmd = &cobra.Command{
 		// Handle as Docker service
 		exists, err := client.Exists(name)
 		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
 		}
 
 		if exists {
@@ -195,16 +190,14 @@ var removeCmd = &cobra.Command{
 			fmt.Printf("Removing service '%s'...\n", name)
 			err := client.Remove(name, removeVolumes)
 			if err != nil {
-				utils.Error(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to remove service '%s': %v", name, err))
 			}
 
 			if removeVolumes {
 				service := config.CONFIG.GetServiceByName(name)
 				volumes, err := docker.GetNamedVolumesForService(service)
 				if err != nil {
-					utils.Error(fmt.Sprintf("Failed to resolve volumes: %v", err))
-					utils.ErrorAndExit("")
+					utils.ErrorAndExit(fmt.Sprintf("Failed to resolve volumes: %v", err))
 				}
 
 				if len(volumes) == 0 {
@@ -225,8 +218,7 @@ var removeCmd = &cobra.Command{
 			}
 
 		} else {
-			utils.Error(fmt.Sprintf("Service '%s' not found", name))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found", name))
 		}
 	},
 }

@@ -23,15 +23,13 @@ var connectCmd = &cobra.Command{
 			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is not in the list of available services", name))
 		}
 		if service.IsComposeService() {
-			utils.Error(fmt.Sprintf("Service '%s' is a compose service", name))
-			utils.ErrorAndExit("Connect command is not yet supported for compose services")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is a compose service. Connect is not yet supported for compose services", name))
 		}
 
 		client := docker.New()
 		exists, err := client.Exists(name)
 		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
 		}
 
 		if exists {
@@ -39,12 +37,10 @@ var connectCmd = &cobra.Command{
 			web, _ := cmd.Flags().GetBool("web")
 
 			if err := client.Connect(name, password, web); err != nil {
-				utils.Error(fmt.Sprintf("Failed to connect to service '%s': %v", name, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to connect to service '%s': %v", name, err))
 			}
 		} else {
-			utils.Error(fmt.Sprintf("Service '%s' not found", name))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found", name))
 		}
 	},
 }
