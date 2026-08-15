@@ -73,7 +73,7 @@ var listCmd = &cobra.Command{
 		}
 
 		if viper.GetBool("json") || format == "json" {
-			utils.Message(services)
+			utils.JSON(services)
 			return
 		}
 
