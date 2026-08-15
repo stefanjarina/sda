@@ -38,7 +38,13 @@ func TestGetVersionFromImageName(t *testing.T) {
 		{"with tag", "postgres:15", "15"},
 		{"with digest", "postgres@sha256:abc123", "abc123"},
 		{"latest tag", "redis:latest", "latest"},
-		{"no tag", "mcr.microsoft.com/mssql/server", "mcr.microsoft.com/mssql/server"},
+		{"no tag", "mcr.microsoft.com/mssql/server", "latest"},
+		{"untagged short name", "postgres", "latest"},
+		{"registry with port, no tag", "localhost:5000/postgres", "latest"},
+		{"registry with port and tag", "registry.io:5000/team/pg:16", "16"},
+		{"ghcr tagged", "ghcr.io/org/app:v1.2.3", "v1.2.3"},
+		{"library path untagged", "library/postgres", "latest"},
+		{"empty tag", "postgres:", "latest"},
 		{"complex version", "neo4j:5.12", "5.12"},
 	}
 

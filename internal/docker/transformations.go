@@ -36,8 +36,15 @@ func getNameFromContainerName(containerName string) string {
 }
 
 func getVersionFromImageName(imageName string) string {
-	imageName = imageName[strings.LastIndex(imageName, ":")+1:]
-	return imageName
+	lastColon := strings.LastIndex(imageName, ":")
+	lastSlash := strings.LastIndex(imageName, "/")
+	if lastColon > lastSlash {
+		tag := imageName[lastColon+1:]
+		if tag != "" {
+			return tag
+		}
+	}
+	return "latest"
 }
 
 // parsePorts converts docker CLI's Ports column (e.g.
