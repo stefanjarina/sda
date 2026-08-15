@@ -59,7 +59,7 @@ var createCmd = &cobra.Command{
 				}
 			}
 
-			if err := client.ComposeUp(*service, build, true); err != nil {
+			if err := client.ComposeUp(*service, build, recreate); err != nil {
 				utils.Error(fmt.Sprintf("Failed to create compose service '%s': %v", serviceName, err))
 				utils.ErrorAndExit("")
 			}
