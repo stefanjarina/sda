@@ -47,8 +47,7 @@ var startCmd = &cobra.Command{
 			flagCount++
 		}
 		if flagCount > 1 {
-			utils.Error("Only one of --all, --running, or --stopped can be specified")
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit("Only one of --all, --running, or --stopped can be specified")
 		}
 
 		client := docker.New()
@@ -70,8 +69,7 @@ var startCmd = &cobra.Command{
 				actionDesc = "all stopped services"
 			}
 			if listErr != nil {
-				utils.Error(fmt.Sprintf("Failed to list services: %v", listErr))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to list services: %v", listErr))
 			}
 
 			if len(services) == 0 {
@@ -104,8 +102,7 @@ var startCmd = &cobra.Command{
 			}
 
 			if len(failed) > 0 {
-				utils.Error(fmt.Sprintf("Failed to start: %s", strings.Join(failed, ", ")))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to start: %s", strings.Join(failed, ", ")))
 			}
 			return
 		}
@@ -118,8 +115,7 @@ var startCmd = &cobra.Command{
 		if service != nil && service.IsComposeService() {
 			// Handle as compose service
 			if err := client.ComposeStart(*service); err != nil {
-				utils.Error(fmt.Sprintf("Failed to start compose service '%s': %v", name, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to start compose service '%s': %v", name, err))
 			}
 			fmt.Printf("Started service '%s'\n", name)
 			return
@@ -128,21 +124,18 @@ var startCmd = &cobra.Command{
 		// Handle as Docker service
 		exists, err := client.Exists(name)
 		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
 		}
 
 		if exists {
 			err := client.Start(name)
 			if err != nil {
-				utils.Error(fmt.Sprintf("Failed to start service '%s': %v", name, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to start service '%s': %v", name, err))
 			}
 
 			fmt.Printf("Started service '%s'\n", name)
 		} else {
-			utils.Error(fmt.Sprintf("Service '%s' not found", name))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found", name))
 		}
 	},
 }

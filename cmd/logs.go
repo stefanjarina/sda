@@ -25,8 +25,7 @@ var logsCmd = &cobra.Command{
 			// Handle as compose service
 			client := docker.New()
 			if err := client.ComposeLogs(*service, follow); err != nil {
-				utils.Error(fmt.Sprintf("Failed to get logs: %v", err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to get logs: %v", err))
 			}
 			return
 		}
@@ -38,12 +37,10 @@ var logsCmd = &cobra.Command{
 		client := docker.New()
 		exists, err := client.Exists(name)
 		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
 		}
 		if !exists {
-			utils.Error(fmt.Sprintf("Service '%s' not found", name))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found", name))
 		}
 
 		logOptions := docker.LogsOptions{
@@ -53,8 +50,7 @@ var logsCmd = &cobra.Command{
 		}
 
 		if err := client.Logs(name, logOptions); err != nil {
-			utils.Error(fmt.Sprintf("Failed to get logs: %v", err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to get logs: %v", err))
 		}
 	},
 }

@@ -16,8 +16,14 @@ func Message(obj any) {
 	}
 }
 
+func JSON(obj any) {
+	outputJSON(obj)
+}
+
 func ErrorAndExit(msg string) {
-	Error(msg)
+	if msg != "" {
+		Error(msg)
+	}
 	os.Exit(1)
 }
 
@@ -33,6 +39,7 @@ func outputJSON(obj any) {
 	jsonString, err := json.MarshalIndent(obj, "", "\t")
 	if err != nil {
 		fmt.Println("{ \"error\": \"Error marshalling JSON\" }")
+		return
 	}
 	fmt.Println(string(jsonString))
 }
@@ -45,5 +52,7 @@ func outputText(obj any) {
 		}
 	case string:
 		fmt.Println(obj)
+	default:
+		fmt.Printf("%+v\n", obj)
 	}
 }

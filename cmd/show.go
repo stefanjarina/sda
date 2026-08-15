@@ -22,22 +22,19 @@ var showCmd = &cobra.Command{
 		// Check if it's a compose service
 		service := config.CONFIG.GetServiceByName(name)
 		if service != nil && service.IsComposeService() {
-			utils.Error(fmt.Sprintf("Service '%s' is a compose service", name))
-			utils.ErrorAndExit("Show command is not supported for compose services")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is a compose service. Show is not supported for compose services", name))
 		}
 
 		client := docker.New()
 		exists, err := client.Exists(name)
 		if err != nil {
-			utils.Error(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))
 		}
 
 		if exists {
 			serviceInfo, err := client.GetInfo(name)
 			if err != nil {
-				utils.Error(fmt.Sprintf("Failed to get info for service '%s': %v", name, err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to get info for service '%s': %v", name, err))
 			}
 
 			if viper.GetBool("json") {
@@ -53,8 +50,7 @@ var showCmd = &cobra.Command{
 			}
 
 		} else {
-			utils.Error(fmt.Sprintf("Service '%s' not found", name))
-			utils.ErrorAndExit("")
+			utils.ErrorAndExit(fmt.Sprintf("Service '%s' not found", name))
 		}
 	},
 }

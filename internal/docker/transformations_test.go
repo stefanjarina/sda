@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -121,8 +122,32 @@ func TestGetNamedVolumesForService(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(volumes) != 2 {
-		t.Errorf("Expected 2 named volumes, got %d", len(volumes))
+	want := []string{"postgres-data", "another-volume"}
+	if !reflect.DeepEqual(volumes, want) {
+		t.Fatalf("got %#v, want %#v", volumes, want)
+	}
+}
+
+func TestGetNamedVolumesForService_CreateAndRemoveAgree(t *testing.T) {
+	config.CONFIG.Prefix = "sda"
+	service := &config.Service{
+		Name: "postgres",
+		Docker: config.Docker{
+			Volumes: []config.Volume{
+				{Source: "{{.NAME}}-data", Target: "/var/lib/postgresql/data", IsNamed: true},
+				{Source: "pgdata", Target: "/data", IsNamed: true},
+				{Source: "/host/path", Target: "/container/path", IsNamed: false},
+			},
+		},
+	}
+
+	volumes, err := GetNamedVolumesForService(service)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []string{"sda-postgres-data", "pgdata"}
+	if !reflect.DeepEqual(volumes, want) {
+		t.Fatalf("GetNamedVolumesForService() = %#v, want %#v", volumes, want)
 	}
 }
 

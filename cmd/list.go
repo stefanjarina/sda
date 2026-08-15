@@ -67,13 +67,12 @@ var listCmd = &cobra.Command{
 				services, err = client.ListRunning()
 			}
 			if err != nil {
-				utils.Error(fmt.Sprintf("Failed to list services: %v", err))
-				utils.ErrorAndExit("")
+				utils.ErrorAndExit(fmt.Sprintf("Failed to list services: %v", err))
 			}
 		}
 
 		if viper.GetBool("json") || format == "json" {
-			utils.Message(services)
+			utils.JSON(services)
 			return
 		}
 

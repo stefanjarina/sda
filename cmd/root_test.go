@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -101,5 +102,50 @@ func TestSaveConfigDoesNotRunOnBrokenYAML(t *testing.T) {
 	}
 	if !bytes.Equal(got, original) {
 		t.Fatalf("config file was modified; original %d bytes, now %d", len(original), len(got))
+	}
+}
+
+func TestBareJSONEnvDoesNotEnableJSONMode(t *testing.T) {
+	t.Setenv("JSON", "true")
+	t.Setenv("SDA_JSON", "")
+	viper.Reset()
+	viper.AutomaticEnv() // current production behaviour, no prefix
+	if !viper.GetBool("json") {
+		t.Skip("this environment does not bind a bare JSON var; nothing to regress")
+	}
+
+	viper.Reset()
+	viper.SetEnvPrefix("SDA")
+	viper.AutomaticEnv()
+	if viper.GetBool("json") {
+		t.Fatal("bare JSON=true must not enable json mode once SetEnvPrefix(\"SDA\") is set")
+	}
+}
+
+func TestSDAJSONEnvEnablesJSONMode(t *testing.T) {
+	t.Setenv("SDA_JSON", "true")
+	viper.Reset()
+	viper.SetEnvPrefix("SDA")
+	viper.AutomaticEnv()
+	if !viper.GetBool("json") {
+		t.Fatal("SDA_JSON=true should enable json mode")
+	}
+}
+
+func TestSaveConfigWritesPrivateFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile = filepath.Join(dir, "sda.yaml")
+
+	saveConfig([]byte("prefix: sda\n"))
+
+	info, err := os.Stat(cfgFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtime.GOOS == "windows" {
+		return
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Fatalf("config file mode = %04o, want 0600", perm)
 	}
 }

@@ -9,6 +9,10 @@ import (
 	"github.com/stefanjarina/sda/internal/config"
 )
 
+func expandVolumeSource(source, containerName string) (string, error) {
+	return replacePlaceholder(source, map[string]string{"NAME": containerName})
+}
+
 func GetNamedVolumesForService(service *config.Service) ([]string, error) {
 	if service == nil {
 		return nil, nil
@@ -18,7 +22,7 @@ func GetNamedVolumesForService(service *config.Service) ([]string, error) {
 		if !v.IsNamed {
 			continue
 		}
-		name, err := replacePlaceholder(v.Source, map[string]string{"NAME": service.Name})
+		name, err := expandVolumeSource(v.Source, containerName(service.Name))
 		if err != nil {
 			return nil, fmt.Errorf("service %q volume %q: %w", service.Name, v.Source, err)
 		}

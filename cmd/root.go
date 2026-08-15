@@ -80,7 +80,7 @@ func initConfig() {
 		cfgFile = path.Join(cfgPath, "sda.yaml")
 
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-			if err := os.MkdirAll(cfgPath, 0755); err != nil {
+			if err := os.MkdirAll(cfgPath, 0700); err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Error creating config directory: %v", err))
 			}
 		}
@@ -88,6 +88,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
+	viper.SetEnvPrefix("SDA")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -115,7 +116,7 @@ func saveConfig(defaultConfig []byte) {
 	r := bytes.NewReader(defaultConfig)
 	_ = viper.ReadConfig(r)
 
-	if err := os.WriteFile(cfgFile, defaultConfig, 0644); err != nil {
+	if err := os.WriteFile(cfgFile, defaultConfig, 0600); err != nil {
 		utils.ErrorAndExit(fmt.Sprintf("Error writing config file: %v", err))
 	}
 }
