@@ -3,11 +3,13 @@ package cmd
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path"
 
 	"github.com/stefanjarina/sda/internal/config"
+	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -48,8 +50,28 @@ func init() {
 	_ = viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
 }
 
+type configReadAction int
+
+const (
+	configWriteDefaults configReadAction = iota
+	configFail
+)
+
+func classifyConfigReadError(err error, userSupplied bool) (configReadAction, string) {
+	var notFound viper.ConfigFileNotFoundError
+	missing := errors.As(err, &notFound) || errors.Is(err, os.ErrNotExist)
+	if missing {
+		if userSupplied {
+			return configFail, fmt.Sprintf("Config file not found: %s", cfgFile)
+		}
+		return configWriteDefaults, ""
+	}
+	return configFail, fmt.Sprintf("Failed to read config %s: %v", cfgFile, err)
+}
+
 func initConfig() {
-	if cfgFile != "" {
+	userSupplied := cfgFile != ""
+	if userSupplied {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
@@ -58,8 +80,7 @@ func initConfig() {
 		cfgFile = path.Join(cfgPath, "sda.yaml")
 
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-			err := os.MkdirAll(cfgPath, 0755)
-			if err != nil {
+			if err := os.MkdirAll(cfgPath, 0755); err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Error creating config directory: %v", err))
 			}
 		}
@@ -70,11 +91,23 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		saveConfig(defaultCfgFile)
+		action, msg := classifyConfigReadError(err, userSupplied)
+		switch action {
+		case configWriteDefaults:
+			saveConfig(defaultCfgFile)
+		default:
+			utils.ErrorAndExit(msg)
+		}
 	}
 
 	if err := viper.Unmarshal(&config.CONFIG); err != nil {
 		utils.ErrorAndExit(fmt.Sprintf("Error reading config file: %v", err))
+	}
+
+	for i := range config.CONFIG.Services {
+		if err := docker.ValidateServiceTemplates(&config.CONFIG.Services[i]); err != nil {
+			utils.ErrorAndExit(err.Error())
+		}
 	}
 }
 

@@ -58,3 +58,92 @@ func TestToServiceInfo_StatusIcons(t *testing.T) {
 		})
 	}
 }
+
+func TestOwnedNameFilterAnchorsPrefix(t *testing.T) {
+	config.CONFIG.Prefix = "sda"
+	got := ownedNameFilter()
+	want := "name=^sda-"
+	if got != want {
+		t.Fatalf("ownedNameFilter() = %q, want %q", got, want)
+	}
+}
+
+func TestOwnedNameFilterQuotesMeta(t *testing.T) {
+	config.CONFIG.Prefix = "sda.dev"
+	got := ownedNameFilter()
+	if got != "name=^sda\\.dev-" {
+		t.Fatalf("ownedNameFilter() = %q, want quoted meta", got)
+	}
+}
+
+func TestIsOwnedContainer(t *testing.T) {
+	config.CONFIG.Prefix = "sda"
+	tests := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"owned", "sda-postgres", true},
+		{"leading slash", "/sda-postgres", true},
+		{"substring in middle", "my-sda-staging", false},
+		{"suffix only", "team-sda-runner", false},
+		{"unrelated", "legacy-db", false},
+		{"prefix without dash", "sda", false},
+		{"empty", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isOwnedContainer(tt.in); got != tt.want {
+				t.Fatalf("isOwnedContainer(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConnect_MissingService(t *testing.T) {
+	prev := config.CONFIG
+	t.Cleanup(func() { config.CONFIG = prev })
+	config.CONFIG = config.Config{Prefix: "sda", Services: nil}
+
+	err := (&Api{}).Connect("ghost", "", false)
+	if err == nil {
+		t.Fatal("expected error for unknown service")
+	}
+}
+
+func TestConnect_WebNotSupported(t *testing.T) {
+	prev := config.CONFIG
+	t.Cleanup(func() { config.CONFIG = prev })
+	config.CONFIG = config.Config{
+		Prefix: "sda",
+		Services: []config.Service{{
+			Name:          "redis",
+			HasWebConnect: false,
+			HasCliConnect: true,
+		}},
+	}
+
+	err := (&Api{}).Connect("redis", "", true)
+	if err == nil {
+		t.Fatal("expected error when HasWebConnect is false")
+	}
+}
+
+func TestConnect_CliNotSupported(t *testing.T) {
+	prev := config.CONFIG
+	t.Cleanup(func() { config.CONFIG = prev })
+	config.CONFIG = config.Config{
+		Prefix: "sda",
+		Services: []config.Service{{
+			Name:          "webonly",
+			HasWebConnect: true,
+			WebConnectUrl: "http://localhost:8080",
+			HasCliConnect: false,
+		}},
+	}
+
+	err := (&Api{}).Connect("webonly", "", false)
+	if err == nil {
+		t.Fatal("expected error when HasCliConnect is false")
+	}
+}

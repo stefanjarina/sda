@@ -59,7 +59,7 @@ var createCmd = &cobra.Command{
 				}
 			}
 
-			if err := client.ComposeUp(*service, build, true); err != nil {
+			if err := client.ComposeUp(*service, build, recreate); err != nil {
 				utils.Error(fmt.Sprintf("Failed to create compose service '%s': %v", serviceName, err))
 				utils.ErrorAndExit("")
 			}
@@ -155,7 +155,11 @@ var createCmd = &cobra.Command{
 
 				if removeVolumes {
 					service := config.CONFIG.GetServiceByName(serviceName)
-					volumes := docker.GetNamedVolumesForService(service)
+					volumes, err := docker.GetNamedVolumesForService(service)
+					if err != nil {
+						utils.Error(fmt.Sprintf("Failed to resolve volumes: %v", err))
+						utils.ErrorAndExit("")
+					}
 					if len(volumes) > 0 {
 						fmt.Printf("Removing volumes: %s...\n", strings.Join(volumes, ", "))
 						if err := cli.RemoveVolumes(volumes); err != nil {

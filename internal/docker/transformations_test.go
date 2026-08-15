@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stefanjarina/sda/internal/config"
@@ -115,10 +116,23 @@ func TestGetNamedVolumesForService(t *testing.T) {
 		},
 	}
 
-	volumes := GetNamedVolumesForService(service)
+	volumes, err := GetNamedVolumesForService(service)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if len(volumes) != 2 {
 		t.Errorf("Expected 2 named volumes, got %d", len(volumes))
+	}
+}
+
+func TestGetNamedVolumesForService_NilService(t *testing.T) {
+	volumes, err := GetNamedVolumesForService(nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if volumes != nil {
+		t.Fatalf("expected nil, got %v", volumes)
 	}
 }
 
@@ -151,11 +165,63 @@ func TestReplacePlaceholder(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := replacePlaceholder(tt.text, tt.obj)
+			result, err := replacePlaceholder(tt.text, tt.obj)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if result != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
 			}
 		})
+	}
+}
+
+func TestReplacePlaceholder_Errors(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		obj  map[string]string
+	}{
+		{"unclosed action", "PASS={{.PASSWORD", map[string]string{"PASSWORD": "x"}},
+		{"missing key", "PASS={{.PASSWORD}}", map[string]string{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := replacePlaceholder(tt.text, tt.obj)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+		})
+	}
+}
+
+func TestValidateServiceTemplates_BadEnv(t *testing.T) {
+	svc := &config.Service{
+		Name: "mssql",
+		Docker: config.Docker{
+			EnvVars: []string{"OK=1", "PASS={{.PASSWORD"},
+		},
+	}
+	err := ValidateServiceTemplates(svc)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "mssql") || !strings.Contains(err.Error(), "envVars[1]") {
+		t.Fatalf("error should name service and field, got %v", err)
+	}
+}
+
+func TestValidateServiceTemplates_OK(t *testing.T) {
+	svc := &config.Service{
+		Name:              "postgres",
+		CliConnectCommand: "psql {{.PASSWORD}}",
+		Docker: config.Docker{
+			EnvVars: []string{"POSTGRES_PASSWORD={{.PASSWORD}}"},
+			Volumes: []config.Volume{{Source: "{{.NAME}}-data", IsNamed: true}},
+		},
+	}
+	if err := ValidateServiceTemplates(svc); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -165,7 +231,10 @@ func TestReplacePassword_WithCustomPassword(t *testing.T) {
 		CustomPassword: "custom-password",
 	}
 
-	result := replacePassword("password={{.PASSWORD}}", service, "default-password")
+	result, err := replacePassword("password={{.PASSWORD}}", service, "default-password")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if result != "password=custom-password" {
 		t.Errorf("Expected custom password, got '%s'", result)
@@ -178,7 +247,10 @@ func TestReplacePassword_WithDefaultPassword(t *testing.T) {
 		CustomPassword: "",
 	}
 
-	result := replacePassword("password={{.PASSWORD}}", service, "default-password")
+	result, err := replacePassword("password={{.PASSWORD}}", service, "default-password")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if result != "password=default-password" {
 		t.Errorf("Expected default password, got '%s'", result)

@@ -23,7 +23,10 @@ func (d *Api) Create(name string) error {
 		return err
 	}
 
-	args := buildCreateArgs(service, containerName(name), config.CONFIG.Network, config.CONFIG.Password)
+	args, err := buildCreateArgs(service, containerName(name), config.CONFIG.Network, config.CONFIG.Password)
+	if err != nil {
+		return err
+	}
 
 	if _, err := d.capture(args...); err != nil {
 		return err
@@ -34,7 +37,7 @@ func (d *Api) Create(name string) error {
 
 // buildCreateArgs builds the argv for `docker create`, translating the
 // service's config into the equivalent CLI flags.
-func buildCreateArgs(service *config.Service, containerName, network, password string) []string {
+func buildCreateArgs(service *config.Service, containerName, network, password string) ([]string, error) {
 	args := []string{"create", "--name", containerName}
 
 	if network != "" {
@@ -42,11 +45,18 @@ func buildCreateArgs(service *config.Service, containerName, network, password s
 	}
 
 	for _, envVar := range service.Docker.EnvVars {
-		args = append(args, "--env", replacePassword(envVar, service, password))
+		env, err := replacePassword(envVar, service, password)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "--env", env)
 	}
 
 	for _, v := range service.Docker.Volumes {
-		source := replacePlaceholder(v.Source, map[string]string{"NAME": containerName})
+		source, err := replacePlaceholder(v.Source, map[string]string{"NAME": containerName})
+		if err != nil {
+			return nil, err
+		}
 		args = append(args, "--volume", fmt.Sprintf("%s:%s", source, v.Target))
 	}
 
@@ -66,7 +76,7 @@ func buildCreateArgs(service *config.Service, containerName, network, password s
 		args = append(args, strings.Fields(cmd)...)
 	}
 
-	return args
+	return args, nil
 }
 
 // fetchImageIfNotExists pulls imageRef (e.g. "postgres:16") unless it is

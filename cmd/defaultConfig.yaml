@@ -48,8 +48,8 @@ services:
         - host: 5432
           container: 5432
       volumes:
-        - source: '{{.NAME}}-data'
-          target: /var/lib/postgresql/data
+        - source: '{{.NAME}}'
+          target: /var/lib/postgresql
           isNamed: true
   - name: mariadb
     outputName: MariaDB
