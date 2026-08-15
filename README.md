@@ -21,6 +21,13 @@ in `$HOME/.config/sda` directory.
 **This is also project written while learning language and because I use it often
 when I need some dirty server in docker**
 
+The config file (`~/.config/sda/sda.yaml`) stores `defaultPassword` and any
+`customPassword` values. New installs write that directory as `0700` and the
+file as `0600`. Passwords are also passed through to Docker as `docker create
+--env …=…` and `docker exec` arguments, so they are visible in the process
+table and in `docker inspect` output. That is acceptable for a local
+development tool and is not a secret-storage mechanism.
+
 ## Requirements
 
 `sda` is a thin wrapper around the Docker CLI - it shells out to `docker` rather than talking
