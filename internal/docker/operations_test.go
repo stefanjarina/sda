@@ -6,8 +6,12 @@ import (
 	"github.com/stefanjarina/sda/internal/config"
 )
 
+func testAPI(prefix string, services ...config.Service) *Api {
+	return &Api{cfg: &config.Config{Prefix: prefix, Services: services}}
+}
+
 func TestToServiceInfo(t *testing.T) {
-	config.CONFIG.Prefix = "sda"
+	d := testAPI("sda")
 
 	e := psEntry{
 		ID:     "abc123",
@@ -18,7 +22,7 @@ func TestToServiceInfo(t *testing.T) {
 		State:  "running",
 	}
 
-	info := toServiceInfo(e)
+	info := d.toServiceInfo(e)
 
 	if info.Name != "postgres" {
 		t.Errorf("Expected name 'postgres', got '%s'", info.Name)
@@ -38,7 +42,7 @@ func TestToServiceInfo(t *testing.T) {
 }
 
 func TestToServiceInfo_StatusIcons(t *testing.T) {
-	config.CONFIG.Prefix = "sda"
+	d := testAPI("sda")
 
 	tests := []struct {
 		state    string
@@ -51,7 +55,7 @@ func TestToServiceInfo_StatusIcons(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.state, func(t *testing.T) {
-			info := toServiceInfo(psEntry{Names: "sda-redis", Image: "redis:latest", State: tt.state})
+			info := d.toServiceInfo(psEntry{Names: "sda-redis", Image: "redis:latest", State: tt.state})
 			if info.StatusIcon != tt.expected {
 				t.Errorf("Expected icon '%s' for state '%s', got '%s'", tt.expected, tt.state, info.StatusIcon)
 			}
@@ -60,8 +64,7 @@ func TestToServiceInfo_StatusIcons(t *testing.T) {
 }
 
 func TestOwnedNameFilterAnchorsPrefix(t *testing.T) {
-	config.CONFIG.Prefix = "sda"
-	got := ownedNameFilter()
+	got := testAPI("sda").ownedNameFilter()
 	want := "name=^sda-"
 	if got != want {
 		t.Fatalf("ownedNameFilter() = %q, want %q", got, want)
@@ -69,15 +72,14 @@ func TestOwnedNameFilterAnchorsPrefix(t *testing.T) {
 }
 
 func TestOwnedNameFilterQuotesMeta(t *testing.T) {
-	config.CONFIG.Prefix = "sda.dev"
-	got := ownedNameFilter()
+	got := testAPI("sda.dev").ownedNameFilter()
 	if got != "name=^sda\\.dev-" {
 		t.Fatalf("ownedNameFilter() = %q, want quoted meta", got)
 	}
 }
 
 func TestIsOwnedContainer(t *testing.T) {
-	config.CONFIG.Prefix = "sda"
+	d := testAPI("sda")
 	tests := []struct {
 		name string
 		in   string
@@ -93,7 +95,7 @@ func TestIsOwnedContainer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isOwnedContainer(tt.in); got != tt.want {
+			if got := d.isOwnedContainer(tt.in); got != tt.want {
 				t.Fatalf("isOwnedContainer(%q) = %v, want %v", tt.in, got, tt.want)
 			}
 		})
@@ -101,49 +103,50 @@ func TestIsOwnedContainer(t *testing.T) {
 }
 
 func TestConnect_MissingService(t *testing.T) {
-	prev := config.CONFIG
-	t.Cleanup(func() { config.CONFIG = prev })
-	config.CONFIG = config.Config{Prefix: "sda", Services: nil}
-
-	err := (&Api{}).Connect("ghost", "", false)
+	err := testAPI("sda").Connect("ghost", "", false)
 	if err == nil {
 		t.Fatal("expected error for unknown service")
 	}
 }
 
 func TestConnect_WebNotSupported(t *testing.T) {
-	prev := config.CONFIG
-	t.Cleanup(func() { config.CONFIG = prev })
-	config.CONFIG = config.Config{
-		Prefix: "sda",
-		Services: []config.Service{{
-			Name:          "redis",
-			HasWebConnect: false,
-			HasCliConnect: true,
-		}},
-	}
+	d := testAPI("sda", config.Service{
+		Name:          "redis",
+		HasWebConnect: false,
+		HasCliConnect: true,
+	})
 
-	err := (&Api{}).Connect("redis", "", true)
+	err := d.Connect("redis", "", true)
 	if err == nil {
 		t.Fatal("expected error when HasWebConnect is false")
 	}
 }
 
 func TestConnect_CliNotSupported(t *testing.T) {
-	prev := config.CONFIG
-	t.Cleanup(func() { config.CONFIG = prev })
-	config.CONFIG = config.Config{
-		Prefix: "sda",
-		Services: []config.Service{{
-			Name:          "webonly",
-			HasWebConnect: true,
-			WebConnectUrl: "http://localhost:8080",
-			HasCliConnect: false,
-		}},
-	}
+	d := testAPI("sda", config.Service{
+		Name:          "webonly",
+		HasWebConnect: true,
+		WebConnectUrl: "http://localhost:8080",
+		HasCliConnect: false,
+	})
 
-	err := (&Api{}).Connect("webonly", "", false)
+	err := d.Connect("webonly", "", false)
 	if err == nil {
 		t.Fatal("expected error when HasCliConnect is false")
+	}
+}
+
+func TestListAvailable_UsesApiConfig(t *testing.T) {
+	d := testAPI("dev", config.Service{
+		Name:    "postgres",
+		Version: "16",
+		Docker:  config.Docker{ImageName: "postgres"},
+	})
+	got := d.ListAvailable()
+	if len(got) != 1 {
+		t.Fatalf("len=%d", len(got))
+	}
+	if got[0].Name != "postgres" || got[0].ContainerName != "dev-postgres" || got[0].Version != "16" {
+		t.Fatalf("%+v", got[0])
 	}
 }

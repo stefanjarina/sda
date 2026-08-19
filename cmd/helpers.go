@@ -80,6 +80,14 @@ func rejectNoOpBulk(verb string, running, stopped bool) error {
 	return nil
 }
 
+func mustDockerClient() *docker.Api {
+	client, err := docker.New(&config.CONFIG)
+	if err != nil {
+		utils.ErrorAndExit(err.Error())
+	}
+	return client
+}
+
 func lookupConfiguredService(name string) (*config.Service, error) {
 	svc := config.CONFIG.GetServiceByName(name)
 	if svc == nil {

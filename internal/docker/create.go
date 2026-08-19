@@ -7,15 +7,17 @@ import (
 	"github.com/stefanjarina/sda/internal/utils"
 )
 
-func (d *Api) Create(name string) error {
-	service := config.CONFIG.GetServiceByName(name)
+func (d *Api) Create(service *config.Service, network, password string) error {
+	if service == nil {
+		return fmt.Errorf("service is required")
+	}
 
-	exists, err := d.Exists(name)
+	exists, err := d.Exists(service.Name)
 	if err != nil {
 		return fmt.Errorf("failed to check if service exists: %w", err)
 	}
 	if exists {
-		return fmt.Errorf("service %s already exists", name)
+		return fmt.Errorf("service %s already exists", service.Name)
 	}
 
 	imageRef := fmt.Sprintf("%s:%s", service.Docker.ImageName, service.Version)
@@ -23,7 +25,7 @@ func (d *Api) Create(name string) error {
 		return err
 	}
 
-	args, err := buildCreateArgs(service, containerName(name), config.CONFIG.Network, config.CONFIG.Password)
+	args, err := buildCreateArgs(service, d.containerName(service.Name), network, password)
 	if err != nil {
 		return err
 	}
