@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetServiceByName_Exists(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Network:  "sda-network",
 		Password: "password",
 		Prefix:   "sda-",
@@ -31,7 +31,7 @@ func TestGetServiceByName_Exists(t *testing.T) {
 		},
 	}
 
-	result := CONFIG.GetServiceByName("postgres")
+	result := cfg.GetServiceByName("postgres")
 
 	if result == nil {
 		t.Fatal("Expected service to be found")
@@ -42,30 +42,30 @@ func TestGetServiceByName_Exists(t *testing.T) {
 }
 
 func TestGetServiceByName_ReturnsPointerIntoSlice(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{
 			{Name: "postgres", Docker: Docker{}},
 			{Name: "redis", Docker: Docker{}},
 		},
 	}
 
-	result := CONFIG.GetServiceByName("redis")
+	result := cfg.GetServiceByName("redis")
 	result.Docker.EnvVars = []string{"FOO=bar"}
 
-	again := CONFIG.GetServiceByName("redis")
+	again := cfg.GetServiceByName("redis")
 	if len(again.Docker.EnvVars) != 1 || again.Docker.EnvVars[0] != "FOO=bar" {
-		t.Errorf("Expected mutation through returned pointer to be visible in CONFIG.Services, got %v", again.Docker.EnvVars)
+		t.Errorf("Expected mutation through returned pointer to be visible in cfg.Services, got %v", again.Docker.EnvVars)
 	}
 }
 
 func TestGetServiceByName_NotExists(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{
 			{Name: "postgres"},
 		},
 	}
 
-	result := CONFIG.GetServiceByName("nonexistent")
+	result := cfg.GetServiceByName("nonexistent")
 
 	if result != nil {
 		t.Error("Expected nil for nonexistent service")
@@ -73,7 +73,7 @@ func TestGetServiceByName_NotExists(t *testing.T) {
 }
 
 func TestGetAllServiceNames(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{
 			{Name: "postgres"},
 			{Name: "redis"},
@@ -81,7 +81,7 @@ func TestGetAllServiceNames(t *testing.T) {
 		},
 	}
 
-	names := CONFIG.GetAllServiceNames()
+	names := cfg.GetAllServiceNames()
 
 	if len(names) != 3 {
 		t.Errorf("Expected 3 names, got %d", len(names))
@@ -102,7 +102,7 @@ func TestServiceExists(t *testing.T) {
 		{"empty string", "", false},
 	}
 
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{
 			{Name: "postgres"},
 		},
@@ -110,47 +110,11 @@ func TestServiceExists(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := CONFIG.ServiceExists(tt.service)
+			result := cfg.ServiceExists(tt.service)
 			if result != tt.expected {
 				t.Errorf("Expected %v, got %v", tt.expected, result)
 			}
 		})
-	}
-}
-
-func TestUpdateNetwork(t *testing.T) {
-	CONFIG = Config{Network: "old-network"}
-
-	CONFIG.UpdateNetwork("new-network")
-
-	if CONFIG.Network != "new-network" {
-		t.Errorf("Expected 'new-network', got '%s'", CONFIG.Network)
-	}
-}
-
-func TestUpdatePassword(t *testing.T) {
-	CONFIG = Config{Password: "old-password"}
-
-	CONFIG.UpdatePassword("new-password")
-
-	if CONFIG.Password != "new-password" {
-		t.Errorf("Expected 'new-password', got '%s'", CONFIG.Password)
-	}
-}
-
-func TestUpdateVersion(t *testing.T) {
-	CONFIG = Config{
-		Services: []Service{
-			{Name: "postgres", Version: "15"},
-			{Name: "redis", Version: "6"},
-		},
-	}
-
-	CONFIG.UpdateVersion("redis", "7")
-
-	redis := CONFIG.GetServiceByName("redis")
-	if redis.Version != "7" {
-		t.Errorf("Expected version '7', got '%s'", redis.Version)
 	}
 }
 
@@ -191,14 +155,14 @@ services:
 }
 
 func TestGetServiceByName_FirstService(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{
 			{Name: "postgres"},
 			{Name: "redis"},
 		},
 	}
 
-	result := CONFIG.GetServiceByName("postgres")
+	result := cfg.GetServiceByName("postgres")
 
 	if result == nil {
 		t.Fatal("Expected first service to be found")
@@ -209,7 +173,7 @@ func TestGetServiceByName_FirstService(t *testing.T) {
 }
 
 func TestGetServiceByName_LastService(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{
 			{Name: "postgres"},
 			{Name: "redis"},
@@ -217,7 +181,7 @@ func TestGetServiceByName_LastService(t *testing.T) {
 		},
 	}
 
-	result := CONFIG.GetServiceByName("mssql")
+	result := cfg.GetServiceByName("mssql")
 
 	if result == nil {
 		t.Fatal("Expected last service to be found")
@@ -228,11 +192,11 @@ func TestGetServiceByName_LastService(t *testing.T) {
 }
 
 func TestGetAllServiceNames_Empty(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{},
 	}
 
-	names := CONFIG.GetAllServiceNames()
+	names := cfg.GetAllServiceNames()
 
 	if len(names) != 0 {
 		t.Errorf("Expected 0 names, got %d", len(names))
@@ -240,27 +204,11 @@ func TestGetAllServiceNames_Empty(t *testing.T) {
 }
 
 func TestServiceExists_Empty(t *testing.T) {
-	CONFIG = Config{
+	cfg := Config{
 		Services: []Service{},
 	}
 
-	if CONFIG.ServiceExists("postgres") {
+	if cfg.ServiceExists("postgres") {
 		t.Error("Expected false for empty services")
-	}
-}
-
-func TestUpdateVersion_NotExists(t *testing.T) {
-	originalVersion := "15"
-	CONFIG = Config{
-		Services: []Service{
-			{Name: "postgres", Version: originalVersion},
-		},
-	}
-
-	CONFIG.UpdateVersion("nonexistent", "99")
-
-	postgres := CONFIG.GetServiceByName("postgres")
-	if postgres.Version != originalVersion {
-		t.Errorf("Version should not change for nonexistent service")
 	}
 }

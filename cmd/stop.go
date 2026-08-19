@@ -16,7 +16,7 @@ var stopCmd = &cobra.Command{
 	Args:  bulkOrExactArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		sel, yes := readBulkFlags(cmd)
-		client := docker.New()
+		client := mustDockerClient()
 
 		if sel.count() > 0 {
 			runBulk(client, sel, bulkSpec{

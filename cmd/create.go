@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stefanjarina/sda/internal/config"
-	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
 
@@ -40,7 +39,7 @@ var createCmd = &cobra.Command{
 			build, _ := cmd.Flags().GetBool("build")
 			yes, _ := cmd.Flags().GetBool("yes")
 
-			client := docker.New()
+			client := mustDockerClient()
 
 			// If recreate is requested, we need to bring down the existing stack first
 			if recreate {
@@ -110,7 +109,7 @@ var createCmd = &cobra.Command{
 			}
 		}
 
-		cli := docker.New()
+		cli := mustDockerClient()
 
 		serviceExists, err := cli.Exists(serviceName)
 		if err != nil {
@@ -145,7 +144,7 @@ var createCmd = &cobra.Command{
 
 				if removeVolumes {
 					service := config.CONFIG.GetServiceByName(serviceName)
-					volumes, err := docker.GetNamedVolumesForService(service)
+					volumes, err := cli.GetNamedVolumesForService(service)
 					if err != nil {
 						utils.ErrorAndExit(fmt.Sprintf("Failed to resolve volumes: %v", err))
 					}
@@ -173,7 +172,12 @@ var createCmd = &cobra.Command{
 		version, _ = cmd.Flags().GetString("version")
 		noStart, _ = cmd.Flags().GetBool("no-start")
 
-		// Apply custom overrides to service config
+		override := *service
+		if version != "" {
+			override.Version = version
+		}
+
+		// Apply custom overrides to a copy so CONFIG stays as loaded.
 		if len(customPorts) > 0 {
 			var portMappings []config.PortMapping
 			for _, port := range customPorts {
@@ -190,7 +194,7 @@ var createCmd = &cobra.Command{
 					portMappings = append(portMappings, config.PortMapping{Host: host, Container: container})
 				}
 			}
-			service.Docker.PortMappings = portMappings
+			override.Docker.PortMappings = portMappings
 		}
 
 		if len(customVolumes) > 0 {
@@ -206,16 +210,24 @@ var createCmd = &cobra.Command{
 					IsNamed: isNamed,
 				})
 			}
-			service.Docker.Volumes = volumes
+			override.Docker.Volumes = volumes
 		}
 
 		if len(customEnvVars) > 0 {
-			service.Docker.EnvVars = customEnvVars
+			override.Docker.EnvVars = customEnvVars
+		}
+
+		network := config.CONFIG.Network
+		if networkName != "" {
+			network = networkName
+		}
+		passwordToUse := config.CONFIG.Password
+		if password != "" {
+			passwordToUse = password
 		}
 
 		if service.HasPassword {
 			if password != "" {
-				config.CONFIG.UpdatePassword(password)
 				utils.Progress("Creating '%s' with custom password\n", service.OutputName)
 			} else {
 				utils.Progress("Creating '%s' with default password\n", service.OutputName)
@@ -233,27 +245,19 @@ var createCmd = &cobra.Command{
 			}
 		}
 
-		if networkName != "" {
-			config.CONFIG.UpdateNetwork(networkName)
-		}
-
-		if version != "" {
-			config.CONFIG.UpdateVersion(serviceName, version)
-		}
-
-		if !cli.CheckNetwork() {
+		if !cli.CheckNetwork(network) {
 			if !yes {
-				confirmedNetworkCreation := utils.Confirm(fmt.Sprintf("Network '%s' does not exist. Create it? (Y/n): ", config.CONFIG.Network))
+				confirmedNetworkCreation := utils.Confirm(fmt.Sprintf("Network '%s' does not exist. Create it? (Y/n): ", network))
 				if !confirmedNetworkCreation {
 					utils.ErrorAndExit("Aborting: network must exist to create service")
 				}
 			}
-			if err := cli.CreateNetwork(); err != nil {
-				utils.ErrorAndExit(fmt.Sprintf("Failed to create network '%s': %v", config.CONFIG.Network, err))
+			if err := cli.CreateNetwork(network); err != nil {
+				utils.ErrorAndExit(fmt.Sprintf("Failed to create network '%s': %v", network, err))
 			}
 		}
 
-		if err := cli.Create(serviceName); err != nil {
+		if err := cli.Create(&override, network, passwordToUse); err != nil {
 			utils.ErrorAndExit(fmt.Sprintf("Failed to create container: %v", err))
 		}
 

@@ -18,7 +18,7 @@ var removeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		removeVolumes, _ := cmd.Flags().GetBool("volumes")
 		sel, yes := readBulkFlags(cmd)
-		client := docker.New()
+		client := mustDockerClient()
 
 		if sel.count() > 0 {
 			var allVolumes []string
@@ -38,7 +38,7 @@ var removeCmd = &cobra.Command{
 					if service == nil {
 						return
 					}
-					volumes, err := docker.GetNamedVolumesForService(service)
+					volumes, err := client.GetNamedVolumesForService(service)
 					if err != nil {
 						o.warn(fmt.Sprintf("Failed to resolve volumes for '%s': %v", s.Name, err))
 						return
@@ -116,7 +116,7 @@ var removeCmd = &cobra.Command{
 		var volumeErr error
 		if removeVolumes {
 			service := config.CONFIG.GetServiceByName(name)
-			volumes, err := docker.GetNamedVolumesForService(service)
+			volumes, err := client.GetNamedVolumesForService(service)
 			if err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Failed to resolve volumes: %v", err))
 			}

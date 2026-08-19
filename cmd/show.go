@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/stefanjarina/sda/internal/docker"
 	"github.com/stefanjarina/sda/internal/utils"
 )
 
@@ -25,7 +24,7 @@ var showCmd = &cobra.Command{
 			utils.ErrorAndExit(fmt.Sprintf("Service '%s' is a compose service. Show is not supported for compose services", name))
 		}
 
-		client := docker.New()
+		client := mustDockerClient()
 		exists, err := client.Exists(name)
 		if err != nil {
 			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))

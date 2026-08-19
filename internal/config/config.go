@@ -77,19 +77,3 @@ func (c *Config) ServiceExists(name string) bool {
 
 	return false
 }
-
-func (c *Config) UpdateNetwork(network string) {
-	c.Network = network
-}
-
-func (c *Config) UpdatePassword(password string) {
-	c.Password = password
-}
-
-func (c *Config) UpdateVersion(name, version string) {
-	for i, service := range c.Services {
-		if service.Name == name {
-			c.Services[i].Version = version
-		}
-	}
-}
