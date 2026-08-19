@@ -41,7 +41,7 @@ var listCmd = &cobra.Command{
 			utils.ErrorAndExit(err.Error())
 		}
 
-		client := docker.New()
+		client := mustDockerClient()
 		var services []docker.ServiceInfo
 
 		switch mode {

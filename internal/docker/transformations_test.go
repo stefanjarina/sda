@@ -9,6 +9,7 @@ import (
 )
 
 func TestGetNameFromContainerName(t *testing.T) {
+	d := &Api{cfg: &config.Config{Prefix: "sda"}}
 	tests := []struct {
 		name     string
 		input    string
@@ -20,8 +21,7 @@ func TestGetNameFromContainerName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config.CONFIG.Prefix = "sda"
-			result := getNameFromContainerName(tt.input)
+			result := d.getNameFromContainerName(tt.input)
 			if result != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
 			}
@@ -123,7 +123,8 @@ func TestGetNamedVolumesForService(t *testing.T) {
 		},
 	}
 
-	volumes, err := GetNamedVolumesForService(service)
+	d := &Api{cfg: &config.Config{Prefix: "sda"}}
+	volumes, err := d.GetNamedVolumesForService(service)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +136,7 @@ func TestGetNamedVolumesForService(t *testing.T) {
 }
 
 func TestGetNamedVolumesForService_CreateAndRemoveAgree(t *testing.T) {
-	config.CONFIG.Prefix = "sda"
+	d := &Api{cfg: &config.Config{Prefix: "sda"}}
 	service := &config.Service{
 		Name: "postgres",
 		Docker: config.Docker{
@@ -147,7 +148,7 @@ func TestGetNamedVolumesForService_CreateAndRemoveAgree(t *testing.T) {
 		},
 	}
 
-	volumes, err := GetNamedVolumesForService(service)
+	volumes, err := d.GetNamedVolumesForService(service)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -158,7 +159,8 @@ func TestGetNamedVolumesForService_CreateAndRemoveAgree(t *testing.T) {
 }
 
 func TestGetNamedVolumesForService_NilService(t *testing.T) {
-	volumes, err := GetNamedVolumesForService(nil)
+	d := &Api{cfg: &config.Config{Prefix: "sda"}}
+	volumes, err := d.GetNamedVolumesForService(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

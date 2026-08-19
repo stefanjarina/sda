@@ -25,7 +25,7 @@ var logsCmd = &cobra.Command{
 		}
 		if service.IsComposeService() {
 			// Handle as compose service
-			client := docker.New()
+			client := mustDockerClient()
 			if err := client.ComposeLogs(*service, follow); err != nil {
 				utils.ErrorAndExit(fmt.Sprintf("Failed to get logs: %v", err))
 			}
@@ -36,7 +36,7 @@ var logsCmd = &cobra.Command{
 		tail, _ := cmd.Flags().GetInt("tail")
 		timestamps, _ := cmd.Flags().GetBool("timestamps")
 
-		client := docker.New()
+		client := mustDockerClient()
 		exists, err := client.Exists(name)
 		if err != nil {
 			utils.ErrorAndExit(fmt.Sprintf("Failed to check if service '%s' exists: %v", name, err))

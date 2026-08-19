@@ -61,7 +61,7 @@ Located in `internal/config/`:
 
 Located in `internal/docker/`:
 
-* `api.go` - Resolves the `docker` binary on `PATH` (`exec.LookPath`); `Api` just holds that path
+* `api.go` - Resolves the `docker` binary on `PATH` (`exec.LookPath`); `New(cfg)` stores the binary path and `*config.Config` on `Api`
 * `exec.go` - The only place that shells out: `capture` (silent, returns stdout, error includes stderr), `run` (stdout/stderr attached, for pull/compose progress), `runInteractive` (+ stdin, for `docker exec -it`)
 * `create.go` - Builds `docker create` argv from a `config.Service` (`buildCreateArgs`), pulls the image first if missing
 * `compose.go` - Wraps the `docker compose` CLI
@@ -303,7 +303,7 @@ sda/
 │   ├── config/            # Configuration management
 │   │   └── config.go      # Config structs and methods
 │   ├── docker/            # Docker/Compose operations (shells out to the `docker` CLI)
-│   │   ├── api.go         # Resolves the docker binary on PATH
+│   │   ├── api.go         # Resolves docker on PATH; New(cfg) stores *config.Config
 │   │   ├── exec.go        # capture/run/runInteractive - the only os/exec call sites
 │   │   ├── create.go      # docker create argv builder + image pull
 │   │   ├── compose.go     # docker compose CLI wrapper
@@ -568,10 +568,11 @@ if service != nil && service.IsComposeService() {
 ### Adding a New Docker Operation
 
 1. Add method to `internal/docker/operations.go` or `internal/docker/compose.go`
-2. Use receiver `*Api` for methods
-3. Handle errors appropriately
-4. Return meaningful error messages
-5. Add tests in `internal/docker/*_test.go`
+2. Use receiver `*Api` for methods; read config from `d.cfg`, not `config.CONFIG`
+3. Construct clients with `docker.New(cfg)` which returns `(*Api, error)`
+4. Handle errors appropriately
+5. Return meaningful error messages
+6. Add tests in `internal/docker/*_test.go` — construct `&Api{cfg: &config.Config{...}}` rather than assigning the package global
 
 ### Adding a New Config Field
 
@@ -634,8 +635,10 @@ dozen API calls.
 **Container Prefix:**
 
 ```go
-// In internal/docker/create.go
-containerName := fmt.Sprintf("%s-%s", config.CONFIG.Prefix, serviceName)
+// In internal/docker/operations.go — Api method, prefix comes from d.cfg
+func (d *Api) containerName(name string) string {
+    return fmt.Sprintf("%s-%s", d.cfg.Prefix, name)
+}
 ```
 
 **Service Lookup:**

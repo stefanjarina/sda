@@ -24,17 +24,14 @@ type psEntry struct {
 func (d *Api) ListAvailable() []ServiceInfo {
 	var services []ServiceInfo
 
-	for _, s := range config.CONFIG.Services {
-		serviceInfo := &ServiceInfo{
+	for _, s := range d.cfg.Services {
+		services = append(services, ServiceInfo{
 			Name:          s.Name,
-			ContainerName: fmt.Sprintf("%s-%s", config.CONFIG.Prefix, s.Name),
-			ID:            "",
+			ContainerName: d.containerName(s.Name),
 			Image:         s.Docker.ImageName,
 			Version:       s.Version,
 			Ports:         []string{},
-			Status:        "",
-		}
-		services = append(services, *serviceInfo)
+		})
 	}
 
 	return services
@@ -72,7 +69,7 @@ func (d *Api) psJSON(filters ...string) ([]psEntry, error) {
 	return entries, nil
 }
 
-func toServiceInfo(e psEntry) ServiceInfo {
+func (d *Api) toServiceInfo(e psEntry) ServiceInfo {
 	statusIcon := "○"
 	switch e.State {
 	case "running":
@@ -82,7 +79,7 @@ func toServiceInfo(e psEntry) ServiceInfo {
 	}
 
 	return ServiceInfo{
-		Name:          getNameFromContainerName(e.Names),
+		Name:          d.getNameFromContainerName(e.Names),
 		ContainerName: e.Names,
 		ID:            e.ID,
 		Image:         e.Image,
@@ -95,17 +92,17 @@ func toServiceInfo(e psEntry) ServiceInfo {
 
 // list returns containers managed by sda (name-prefixed), optionally
 // narrowed to a status ("running", "exited", or "" for all).
-func ownedNameFilter() string {
-	return "name=^" + regexp.QuoteMeta(config.CONFIG.Prefix+"-")
+func (d *Api) ownedNameFilter() string {
+	return "name=^" + regexp.QuoteMeta(d.cfg.Prefix+"-")
 }
 
-func isOwnedContainer(name string) bool {
+func (d *Api) isOwnedContainer(name string) bool {
 	name = strings.TrimPrefix(name, "/")
-	return strings.HasPrefix(name, config.CONFIG.Prefix+"-")
+	return strings.HasPrefix(name, d.cfg.Prefix+"-")
 }
 
 func (d *Api) list(status string) ([]ServiceInfo, error) {
-	filters := []string{ownedNameFilter()}
+	filters := []string{d.ownedNameFilter()}
 	if status != "" {
 		filters = append(filters, "status="+status)
 	}
@@ -117,10 +114,10 @@ func (d *Api) list(status string) ([]ServiceInfo, error) {
 
 	var services []ServiceInfo
 	for _, e := range entries {
-		if !isOwnedContainer(e.Names) {
+		if !d.isOwnedContainer(e.Names) {
 			continue
 		}
-		services = append(services, toServiceInfo(e))
+		services = append(services, d.toServiceInfo(e))
 	}
 
 	return services, nil
@@ -142,7 +139,7 @@ func (d *Api) ListStopped() ([]ServiceInfo, error) {
 // `docker ps --filter name=` matches substrings, so "sda-postgres" would also
 // match "sda-postgres-replica" - the exact-name check guards against that.
 func (d *Api) findContainer(name string) (ServiceInfo, bool, error) {
-	name = containerName(name)
+	name = d.containerName(name)
 
 	entries, err := d.psJSON("name=" + name)
 	if err != nil {
@@ -151,7 +148,7 @@ func (d *Api) findContainer(name string) (ServiceInfo, bool, error) {
 
 	for _, e := range entries {
 		if e.Names == name {
-			return toServiceInfo(e), true, nil
+			return d.toServiceInfo(e), true, nil
 		}
 	}
 
@@ -176,12 +173,12 @@ func (d *Api) Exists(name string) (bool, error) {
 }
 
 func (d *Api) Start(name string) error {
-	_, err := d.capture("start", containerName(name))
+	_, err := d.capture("start", d.containerName(name))
 	return err
 }
 
 func (d *Api) Stop(name string) error {
-	_, err := d.capture("stop", containerName(name))
+	_, err := d.capture("stop", d.containerName(name))
 	return err
 }
 
@@ -190,7 +187,7 @@ func (d *Api) Remove(name string, removeVolumes bool) error {
 	if removeVolumes {
 		args = append(args, "--volumes")
 	}
-	args = append(args, containerName(name))
+	args = append(args, d.containerName(name))
 
 	_, err := d.capture(args...)
 	return err
@@ -207,7 +204,7 @@ func (d *Api) RemoveVolumes(names []string) error {
 }
 
 func (d *Api) Connect(name string, customPassword string, web bool) error {
-	service := config.CONFIG.GetServiceByName(name)
+	service := d.cfg.GetServiceByName(name)
 	if service == nil {
 		return fmt.Errorf("service %q is not in the list of available services", name)
 	}
@@ -232,13 +229,13 @@ func (d *Api) Logs(name string, opts LogsOptions) error {
 	if opts.Timestamps {
 		args = append(args, "--timestamps")
 	}
-	args = append(args, containerName(name))
+	args = append(args, d.containerName(name))
 
 	return d.run(args...)
 }
 
-func containerName(name string) string {
-	return fmt.Sprintf("%s-%s", config.CONFIG.Prefix, name)
+func (d *Api) containerName(name string) string {
+	return fmt.Sprintf("%s-%s", d.cfg.Prefix, name)
 }
 
 func handleWebConnect(service *config.Service) error {
@@ -249,7 +246,7 @@ func (d *Api) handleCliConnect(service *config.Service, customPassword, name str
 	tokens := splitArgs(service.CliConnectCommand)
 
 	if service.HasPassword {
-		passwordToUse := config.CONFIG.Password
+		passwordToUse := d.cfg.Password
 		if customPassword != "" {
 			passwordToUse = customPassword
 		}
@@ -262,6 +259,6 @@ func (d *Api) handleCliConnect(service *config.Service, customPassword, name str
 		}
 	}
 
-	args := append([]string{"exec", "-it", containerName(name)}, tokens...)
+	args := append([]string{"exec", "-it", d.containerName(name)}, tokens...)
 	return d.runInteractive(args...)
 }

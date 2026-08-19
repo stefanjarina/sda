@@ -13,7 +13,7 @@ func expandVolumeSource(source, containerName string) (string, error) {
 	return replacePlaceholder(source, map[string]string{"NAME": containerName})
 }
 
-func GetNamedVolumesForService(service *config.Service) ([]string, error) {
+func (d *Api) GetNamedVolumesForService(service *config.Service) ([]string, error) {
 	if service == nil {
 		return nil, nil
 	}
@@ -22,7 +22,7 @@ func GetNamedVolumesForService(service *config.Service) ([]string, error) {
 		if !v.IsNamed {
 			continue
 		}
-		name, err := expandVolumeSource(v.Source, containerName(service.Name))
+		name, err := expandVolumeSource(v.Source, d.containerName(service.Name))
 		if err != nil {
 			return nil, fmt.Errorf("service %q volume %q: %w", service.Name, v.Source, err)
 		}
@@ -31,8 +31,8 @@ func GetNamedVolumesForService(service *config.Service) ([]string, error) {
 	return volumes, nil
 }
 
-func getNameFromContainerName(containerName string) string {
-	return strings.TrimPrefix(containerName, config.CONFIG.Prefix+"-")
+func (d *Api) getNameFromContainerName(containerName string) string {
+	return strings.TrimPrefix(containerName, d.cfg.Prefix+"-")
 }
 
 func getVersionFromImageName(imageName string) string {
