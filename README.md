@@ -124,26 +124,13 @@ sda connect ravendb --web
 
 ## TODO
 
-- [x] better output for list command
-- [x] add logs command
-- [x] add --recreate flag to create command
-- [x] add tests
-- [x] support bulk actions (stop/start all, etc.)
-- [x] Generate documentation
-- [x] More general polish (e.g. typos, common messages to be similar, naming to be similar, etc.)
-- [X] Add GitHub Actions for CI/CD
-  - [X] Create GitHub release
 - [ ] Improve installation instructions
   - [ ] create windows installer
   - [ ] investigate scoop, chocolatey, winget
   - [ ] create deb + rpm packages
   - [ ] investigate snap
   - [ ] investigate AUR
-- [x] Add more customization options with sane defaults (e.g. custom ports, custom network, ...)
-- [x] Add versioning autoincrement (via tags?)
-- [x] Support calling docker compose maybe? (e.g. for more complex setups)
 
-### Ultimate TODO for services
+### TODO for services
 
 - [ ] elasticsearch - fix cli connect command
-- [x] SurrealDB - add support

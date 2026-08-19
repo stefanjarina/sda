@@ -18,7 +18,7 @@ The tool is intended for local development to avoid repetitive `docker run` comm
 
 ## Key Technologies
 
-* **Language:** Go (1.25.0)
+* **Language:** Go (1.25.5)
 * **CLI Framework:** [Cobra](https://github.com/spf13/cobra)
 * **Configuration:** [Viper](https://github.com/spf13/viper)
 * **Container Runtime:** Docker CLI, invoked via `os/exec` (no Docker SDK dependency - sda is a thin wrapper and assumes `docker` is already installed)
@@ -37,6 +37,7 @@ The tool is intended for local development to avoid repetitive `docker run` comm
 Defined in `cmd/` directory:
 
 * `root.go` - Root command, config initialization, version info
+* `helpers.go` - Shared command helpers (`mustDockerClient`, bulk selection, list-mode flags)
 * `create.go` - Create/start services (acts as `docker create` + `docker compose up`)
 * `start.go` - Start services (acts as `docker start` + `docker compose start`)
 * `stop.go` - Stop services (acts as `docker stop` + `docker compose stop`)
@@ -89,28 +90,27 @@ Located in `internal/utils/`:
 
 ### Build Tools
 
-Located in `bin/`:
+Located in `bin/` (not included in the shipped binary):
 
-* `gendocs.go` - Standalone documentation generator
+* `gendocs/main.go` - Standalone documentation generator
   * Uses Cobra's doc generation
   * Supports `-output` flag
   * Generates markdown and man pages
-  * NOT included in shipped binary
+* `increment_version/main.go` - Creates the next semver git tag (patch by default)
 
 ### Testing
 
 Located in `test/` and `internal/*/`:
 
-* Config tests: 94.4% coverage
-* Docker transformations tests: 100% coverage on core functions
-* Utils tests: Custom flag validation
-* Test helpers for temp config and directory creation
+* Config, docker, utils, and `cmd` helper tests live next to the code (`*_test.go`)
+* Fixtures in `test/fixtures/`
+* Run `task test` for current coverage numbers (do not hardcode them here)
 
 ## Build and Run
 
 ### Prerequisites
 
-* Go 1.22 or higher
+* Go 1.25.5 (see `go.mod`)
 * Docker CLI ≥ 23.0 (running) - sda shells out to `docker`, it does not vendor a Docker SDK
 * Docker Compose v2 plugin (`docker compose`), for compose services
 * `task` (optional, for convenience)
@@ -124,16 +124,16 @@ The project uses a `Taskfile.yaml` for common tasks:
 * **Build and Run:** `task runb` (builds then runs)
 * **Test:** `task test` (runs `go test -v ./...` with coverage)
 * **Build All Platforms:** `task build-all` (cross-compiles for Windows/Linux/Darwin AMD64/ARM64)
-* **Generate Docs:** `task docs` (runs `bin/gendocs.go`)
+* **Generate Docs:** `task docs` (runs `bin/gendocs/main.go`)
 * **Clean:** `task clean`
-* **Version Increment:** `task version:increment [patch|minor|major]` (creates git tag)
+* **Version Increment:** `task increment -- [--major | --minor] [--dry-run] [--yes]` (creates git tag; default bump is patch)
 
 ### Commands (standard Go)
 
 * **Build:** `go build -o publish/sda main.go`
 * **Run:** `go run main.go [command]`
 * **Test:** `go test -v ./...`
-* **Generate Docs:** `go run bin/gendocs.go [-output docs]`
+* **Generate Docs:** `go run bin/gendocs/main.go [-output docs]`
 
 ## Configuration
 
@@ -144,9 +144,10 @@ The project uses a `Taskfile.yaml` for common tasks:
 ### Config Structure
 
 ```yaml
-defaultNetwork: sda-network
-defaultPassword: password
-prefix: sda-
+# Shipped defaults from cmd/defaultConfig.yaml
+defaultNetwork: simple-docker-apps
+defaultPassword: Start123++
+prefix: sda
 
 services:
   # Docker service example
@@ -160,13 +161,13 @@ services:
         - host: 5432
           container: 5432
       volumes:
-        - source: postgres-data
-          target: /var/lib/postgresql/data
+        - source: '{{.NAME}}'
+          target: /var/lib/postgresql
           isNamed: true
       envVars:
-        - POSTGRES_PASSWORD={{password}}
+        - POSTGRES_PASSWORD={{.PASSWORD}}
     hasCliConnect: true
-    cliConnectCommand: psql -U postgres
+    cliConnectCommand: psql 'postgresql://postgres:{{.PASSWORD}}@localhost:5432'
     hasWebConnect: false
 
   # Compose service example
@@ -180,7 +181,7 @@ services:
 **Docker Service:**
 
 * Has `docker` section with image, ports, volumes, env vars
-* Managed as individual containers with `sda-` prefix
+* Managed as individual containers named `{prefix}-{serviceName}` (default `sda-postgres`)
 * Full customization via CLI flags
 
 **Compose Service:**
@@ -291,6 +292,9 @@ sda connect [service]
 sda/
 ├── cmd/                    # CLI commands
 │   ├── root.go            # Root command, config init
+│   ├── root_test.go
+│   ├── helpers.go         # mustDockerClient, bulk helpers, list-mode flags
+│   ├── helpers_test.go
 │   ├── create.go          # Create command
 │   ├── start.go           # Start command
 │   ├── stop.go            # Stop command
@@ -317,14 +321,12 @@ sda/
 │       ├── prompts.go     # User prompts
 │       ├── commands.go    # OpenURL (browser launch)
 │       └── customFlags.go # Custom flag types
-├── bin/                   # Build-time tools
-│   └── gendocs.go         # Documentation generator
-├── test/                  # Test files
-│   └── helpers.go         # Test helpers
-├── _dev/                  # Development planning docs
-│   ├── TODO.md            # Remaining tasks
-│   ├── PLAN.md            # Execution plan
-│   └── NEXT.md            # Next phase details
+├── bin/                   # Build-time tools (not shipped)
+│   ├── gendocs/main.go    # Documentation generator
+│   └── increment_version/main.go  # Semver git tag helper
+├── test/                  # Shared test fixtures
+│   ├── helpers.go
+│   └── fixtures/
 ├── publish/               # Build output (gitignored)
 ├── docs/                  # Generated docs (gitignored)
 ├── main.go                # Entry point
@@ -378,12 +380,9 @@ follow, _ := cmd.Flags().GetBool("follow")
 * Use standard `testing` package
 * Table-driven tests where appropriate
 * Test files located alongside implementation (`*_test.go`)
-* Mock data in `test/` directory
+* Fixtures in `test/fixtures/`
 * Target: 70%+ coverage on core logic
-* Current coverage:
-  * Config: 94.4%
-  * Transformations: 100%
-  * Utils: 16.9%
+* Run `task test` for current coverage; do not hardcode percentages here
 
 ### Formatting and Style
 
@@ -396,7 +395,7 @@ follow, _ := cmd.Flags().GetBool("follow")
 
 ### Phase 1: Foundation & Polish
 
-* ✅ Test infrastructure (94.4% config coverage)
+* ✅ Test infrastructure
 * ✅ Code cleanup and consistency
 
 ### Phase 2: User-Facing Improvements
@@ -412,7 +411,7 @@ follow, _ := cmd.Flags().GetBool("follow")
 
 ### Phase 4: Documentation
 
-* ✅ Standalone `bin/gendocs.go` tool
+* ✅ Standalone `bin/gendocs/main.go` tool
 * ✅ Auto-generated man pages and CLI reference
 * ✅ `task docs` command
 * ✅ Not included in shipped binary
@@ -431,18 +430,16 @@ follow, _ := cmd.Flags().GetBool("follow")
 
 ### Version
 
-**0.0.10** (defined in `cmd/root.go` via `GitTag`)
+`GitTag` in `cmd/root.go` is injected at build time (`-X github.com/stefanjarina/sda/cmd.GitTag=…` in `Taskfile.yaml`). The source of truth is the latest git tag (`git describe --tags --abbrev=0` or `git tag --sort=v:refname`). Do not hardcode a version number here.
 
 ### Container Naming
 
-* **Docker services:** `{prefix}-{serviceName}` (default prefix: `sda-`)
+* **Docker services:** `{prefix}-{serviceName}` (default prefix `sda` → `sda-postgres`). The hyphen is added by `containerName()`, not stored in the prefix.
 * **Compose services:** Managed by compose using service name as project name
 
 ### Supported Services (Default Config)
 
-* PostgreSQL, MySQL, MSSQL, MariaDB, MongoDB, SurrealDB
-* Redis, Memcached, Elasticsearch, RabbitMQ, Kafka
-* Compose services (user-defined)
+See the README service table and `cmd/defaultConfig.yaml`. Do not maintain a third copy here.
 
 ### Service Lifecycle
 
@@ -460,17 +457,7 @@ follow, _ := cmd.Flags().GetBool("follow")
 3. `start` → runs `docker compose start` (restarts)
 4. `remove` → runs `docker compose down` (removes stack)
 
-## Pending Work
-
-### Phase 6: Distribution & Installation (NEXT)
-
-* Package managers: Scoop, Chocolatey, WinGet, Homebrew, apt, yum, AUR, snap
-* Installers and automation
-* See `_dev/NEXT.md` for detailed implementation plan
-
-### Phase 7: Service-Specific Fixes
-
-* Elasticsearch CLI connect command fix
+Open work is tracked in the README `## TODO` section.
 
 ## Important Implementation Details
 
@@ -585,11 +572,12 @@ if service != nil && service.IsComposeService() {
 ## Versioning and Releases
 
 * **Version Location:** `cmd/root.go` - `GitTag` variable set via build flags
-* **Version Management:** Manual git tags (e.g., `v0.0.10`)
-* **Build Script:** `scripts/increment_version.ts` for automated tag creation
-* **Task Command:** `task version:increment [patch|minor|major]`
+* **Version Management:** Manual semver git tags
+* **Build Script:** `bin/increment_version/main.go` for automated tag creation
+* **Task Command:** `task increment -- [--major | --minor] [--dry-run] [--yes]` (default bump is patch)
+* **Reading the latest tag:** `git describe --tags --abbrev=0` or `git tag --sort=v:refname` — not `git tag | tail` (lexicographic; `v0.0.9` sorts after `v0.0.10`)
 * **Release Process:**
-  1. Create git tag manually or via script
+  1. Create git tag manually or via `task increment`
   2. GitHub Actions automatically builds and publishes release
   3. Binaries for all platforms uploaded to GitHub Releases
 
@@ -622,13 +610,14 @@ dozen API calls.
 
 ### Key Files to Know
 
-* `cmd/root.go:38` - `GetRootCommand()` exports root for docs generation
-* `internal/config/config.go:27` - `IsComposeService()` service type detection
+* `cmd/root.go` - `GetRootCommand()` exports root for docs generation
+* `internal/config/config.go` - `IsComposeService()` service type detection
 * `internal/docker/compose.go` - `resolveComposePath()` path resolution logic, `composeArgs()` shared `docker compose -f ... -p ...` argv, `ComposeUp()` etc.
 * `internal/docker/create.go` - `buildCreateArgs()` translates a `config.Service` into `docker create` argv
 * `internal/docker/exec.go` - `capture`/`run`/`runInteractive`, the only `os/exec` call sites for the `docker` binary
-* `cmd/create.go:33` - Compose service handling in create command
-* `cmd/start.go:113` - Compose service handling in start command
+* `cmd/helpers.go` - `mustDockerClient()`, bulk selection, list-mode helpers
+* `cmd/create.go` - Compose create path (`ComposeUp` after `requireRecreateForVolumes`)
+* `cmd/start.go` - Compose start path (`lookupConfiguredService` + `ComposeStart`)
 
 ### Important Patterns
 
